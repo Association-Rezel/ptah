@@ -22,4 +22,4 @@ profiles:
           vault_server: https://vault.hashicorp.com
           pki_mount: pki
           pki_role: openwrt
-  
+          pki_ttl: 5y

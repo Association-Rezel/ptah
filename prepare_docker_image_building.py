@@ -9,6 +9,12 @@ from shutil import rmtree, copytree, copy2
 from dotenv import load_dotenv
 from typing import List, Optional, Literal
 from pydantic import BaseModel, HttpUrl
+from packaging import version
+import requests
+import re
+import zstandard as zstd
+import io
+import tarfile
 
 
 # ----------------------------- Configuration Models ---------------------------- #
@@ -34,10 +40,11 @@ class VaultCertificates(BaseModel):
     vault_server: HttpUrl
     pki_mount: str
     pki_role: str
+    pki_ttl: str
 
 
 class HostSpecificFiles(BaseModel):
-    vault_certificates: VaultCertificates
+    vault_certificates: Optional[VaultCertificates]
 
 
 class Files(BaseModel):
@@ -49,6 +56,7 @@ class Profile(BaseModel):
     name: str
     target: str
     arch: str
+    packages: Optional[List[str]] = None
     files: Files
 
 
@@ -58,6 +66,16 @@ class PtahConfig(BaseModel):
 
 # ------------------------------- Helper Functions ------------------------------ #
 BUILD_DIR = "build"
+OPENWRT_BASE_RELEASES_URL = "https://downloads.openwrt.org/releases"
+OPENWRT_BUILDER_FILE_EXT = ".Linux-x86_64.tar.zst"
+
+
+def extract_tar_zst(input_path: Path, output_dir: Path):
+    with open(input_path, "rb") as compressed_file:
+        dctx = zstd.ZstdDecompressor()
+        with dctx.stream_reader(compressed_file) as reader:
+            with tarfile.open(fileobj=io.BytesIO(reader.read()), mode="r:") as tar:
+                tar.extractall(path=output_dir, filter="tar")
 
 
 def build_git_http_url(url: str, username: str, password: str) -> str:
@@ -127,8 +145,71 @@ def merge_tmp_to_files(tmp_path: Path, files_path: Path):
                 copy2(src_file, dest_file)
 
 
+def get_openwrt_latest_release():
+    latest_release = sorted(
+        re.findall(r"\d+\.\d+\.\d+", requests.get(OPENWRT_BASE_RELEASES_URL).text),
+        key=version.parse,
+    )[-1]
+    return latest_release
+
+
+def get_profile_image_builder(
+    profile: Profile, openwrt_version: str, profile_path: Path, tmp_path: Path
+):
+    target_url = f"{OPENWRT_BASE_RELEASES_URL}/{openwrt_version}/targets/{profile.target}/{profile.arch}"
+    archive_name = f"openwrt-imagebuilder-{openwrt_version}-{profile.target}-{profile.arch}.Linux-x86_64.tar.zst"
+    image_builder_url = f"{target_url}/{archive_name}"
+    response = requests.get(image_builder_url, stream=True)
+    response.raise_for_status()
+
+    archive_path = tmp_path / archive_name
+    with open(archive_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+    unpack_dir = profile_path / archive_path.stem
+    unpack_dir.mkdir(parents=True, exist_ok=True)
+    extract_tar_zst(archive_path, unpack_dir)
+
+
+def echo_to_file(file: Path, content: str):
+    with open(file, "w") as f:
+        f.write(content)
+
+
+def prepare_commands(
+    profile: Profile,
+    openwrt_version: str,
+    ptah_version: Optional[str],
+    profile_path: Path,
+):
+    # ------------------------ Get Vault VaultCertificates ----------------------- #
+    if profile.files.host_specific_files.vault_certificates:
+        vault_pki_mount = profile.files.host_specific_files.vault_certificates.pki_mount
+        vault_pki_role = profile.files.host_specific_files.vault_certificates.pki_role
+        vault_pki_ttl = profile.files.host_specific_files.vault_certificates.pki_ttl
+        vault_server = profile.files.host_specific_files.vault_certificates.vault_server
+        vault_cmd = f'VAULT_ADDR={vault_server} vault write {vault_pki_mount}/issue/{vault_pki_role} ttl="{vault_pki_ttl}"'
+        echo_to_file(profile_path / "vault_certificates_cmd.sh", vault_cmd)
+
+    # -------------------------------- make image -------------------------------- #
+    packages = " ".join(profile.packages) if profile.packages else ""
+    make_image_cmd = (
+        f"make image "
+        f'PROFILE="{profile.name}" '
+        f'PACKAGES="{packages}" '
+        f'EXTRA_IMAGE_NAME="ptah-{ptah_version if ptah_version else "no_version"}" '
+        f'FILES="{Path("/") / profile_path / "files"}" '
+        f'BUILD_DIR="{Path("/") / Path("bin")}"'
+    )
+
+    echo_to_file(profile_path / "make_image_cmd.sh", make_image_cmd)
+
+
 # ---------------------------------- Main Logic --------------------------------- #
-def main(config_path: Optional[Path]):
+def main(
+    config_path: Optional[Path], openwrt_version: str, ptah_version: Optional[str]
+):
     load_dotenv()
 
     if not config_path:
@@ -162,6 +243,10 @@ def main(config_path: Optional[Path]):
 
         merge_tmp_to_files(tmp_path, files_path)
 
+        get_profile_image_builder(profile, openwrt_version, profile_path, tmp_path)
+
+        prepare_commands(profile, openwrt_version, ptah_version, profile_path)
+
 
 # --------------------------------- Entry Point --------------------------------- #
 if __name__ == "__main__":
@@ -169,6 +254,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config", required=True, help="Path to Ptah configuration file"
     )
+    parser.add_argument("--openwrt-version", help="OpenWRT version to build")
+
+    parser.add_argument("--ptah-version", help="Ptah version to build")
+
     args = parser.parse_args()
 
-    main(Path(args.config))
+    if not args.openwrt_version:
+        print(
+            f"Please provide the OpenWRT version to build. Latest release: {get_openwrt_latest_release()}"
+        )
+        os._exit(1)
+
+    main(Path(args.config), args.openwrt_version, args.ptah_version)

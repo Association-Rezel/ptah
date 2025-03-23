@@ -3,3 +3,5 @@ pydantic
 black
 gitpython
 python-dotenv
+requests
+zstandard
