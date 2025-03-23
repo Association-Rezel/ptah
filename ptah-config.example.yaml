@@ -1,0 +1,25 @@
+profiles:
+  - name: xiaomi_aiot_ac2350
+    target: ath79
+    arch: generic
+    files:
+      common_files:
+        - type: local
+          path: local_files/shared_files
+        - type: local
+          path: local_files/ac2350_files
+        - type: git
+          path: router_files
+          git:
+            url: https://github.com/association-rezel/go_daemon.git
+            type: http
+            credentials:
+              username_environ: GIT_USER_1
+              password_environ: GIT_TOKEN_1
+      host_specific_files:
+        vault_certificates:
+          destination: /etc/ssl/certs
+          vault_server: https://vault.hashicorp.com
+          pki_mount: pki
+          pki_role: openwrt
+  

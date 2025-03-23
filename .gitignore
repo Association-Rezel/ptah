@@ -1,0 +1,5 @@
+build
+local_files
+.venv
+ptah-config.yaml
+.env
