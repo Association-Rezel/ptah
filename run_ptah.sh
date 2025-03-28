@@ -13,9 +13,9 @@ OPENWRT_RELEASE_URL="https://downloads.openwrt.org/releases/"
 #                                   Precheck                                   #
 # ---------------------------------------------------------------------------- #
 
-# Check if a venv is already activated
-if [[ -n "$VIRTUAL_ENV" ]]; then
-    echo -e "${RED}Deactivate the current virtual environment${NC}"
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}Docker is not installed. Please install Docker first.${NC}"
     exit 1
 fi
 
@@ -25,9 +25,8 @@ fi
 
 # Function to display usage/help
 usage() {
-    echo -e "${RED}Usage: $0 --dockerfile-template <Path to Dockerfile.j2> --dockerfile-output <Path to Dockerfile output> \
---config <Path to ptah config yaml> [--openwrt-version <OpenWRT Version number to build to>] \
-[--ptah-version <Ptah version] ${NC}"
+    echo -e "${RED}Usage: $0 --config <Path to ptah config yaml> \
+    [--openwrt-version <OpenWRT Version number to build to>] [--ptah-version <Ptah version] ${NC}"
     exit 1
 }
 
@@ -42,8 +41,6 @@ done
 # Parse the flags
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --dockerfile-template) DOCKERFILE_TEMPLATE="$2"; shift ;;
-        --dockerfile-output) DOCKERFILE_OUTPUT="$2"; shift ;;
         --config) CONFIG="$2"; shift ;;
         --openwrt-version) OPENWRT_VERSION="$2"; shift ;;
         --ptah-version) PTAH_VERSION="$2"; shift ;;
@@ -53,15 +50,9 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Check if the required flags are passed
-if [[ -z "$DOCKERFILE_TEMPLATE" || -z "$DOCKERFILE_OUTPUT" || -z "$CONFIG" ]]; then
+if [[ -z "$CONFIG" ]]; then
     echo -e "${RED}Missing required arguments${NC}"
     usage
-    exit 1
-fi
-
-# Check if the dockerfile template exists
-if [[ ! -f "$DOCKERFILE_TEMPLATE" ]]; then
-    echo -e "${RED}Dockerfile template not found${NC}"
     exit 1
 fi
 
@@ -93,34 +84,10 @@ if [[ ! $(curl -s "$OPENWRT_RELEASE_URL" | grep -oP "([0-9]+\.[0-9]+\.[0-9]+)" |
 fi
 
 # ---------------------------------------------------------------------------- #
-#                                  Setup venv                                  #
-# ---------------------------------------------------------------------------- #
-
-# Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install the required packages
-pip install -r requirements.txt
-
-# ---------------------------------------------------------------------------- #
-#                            Run Dockerfile builder                            #
-# ---------------------------------------------------------------------------- #
-
-python generate_dockerfile.py --dockerfile-template "$DOCKERFILE_TEMPLATE" --dockerfile-output "$DOCKERFILE_OUTPUT" \
-    --config "$CONFIG"
-
-if [[ $? -ne 0 ]]; then
-    echo -e "${RED}Failed to generate Dockerfile${NC}"
-    exit 1
-fi
-
-# ---------------------------------------------------------------------------- #
 #                              Build Docker image                              #
 # ---------------------------------------------------------------------------- #
 
-# Parse build args from Dockerfile
-VAR_BUILD_ARGS=$(grep "^#build_args:" $DOCKERFILE_OUTPUT | sed 's/^#build_args: //')
-
-docker build -t $PTAH_VERSION $(dirname $DOCKERFILE_OUTPUT) --build-arg OPENWRT_VERSION="$OPENWRT_VERSION" \
-    --build-arg PTAH_VERSION="$PTAH_VERSION" --build-arg PTAH_CONFIG="$CONFIG" $VAR_BUILD_ARGS
+docker build -t $PTAH_VERSION . --secret id=credentials,src=.env \
+    --build-arg openwrt_version="$OPENWRT_VERSION" \
+    --build-arg ptah_version="$PTAH_VERSION" \
+    --build-arg ptah_config="$CONFIG"

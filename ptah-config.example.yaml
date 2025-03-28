@@ -23,3 +23,8 @@ profiles:
           pki_mount: pki
           pki_role: openwrt
           pki_ttl: 5y
+credentials:
+  GIT_USER_1:
+    source: environ
+  GIT_TOKEN_1:
+    source: environ

@@ -7,8 +7,8 @@ import git
 from pathlib import Path
 from shutil import rmtree, copytree, copy2
 from dotenv import load_dotenv
-from typing import List, Optional, Literal
-from pydantic import BaseModel, HttpUrl
+from typing import Optional
+from models import *
 from packaging import version
 import requests
 import re
@@ -17,59 +17,7 @@ import io
 import tarfile
 
 
-# ----------------------------- Configuration Models ---------------------------- #
-class GitCredentials(BaseModel):
-    username_environ: str
-    password_environ: str
-
-
-class GitRepo(BaseModel):
-    url: str
-    type: Literal["http", "ssh", "git"]
-    credentials: GitCredentials
-
-
-class FileEntry(BaseModel):
-    type: Literal["local", "git"]
-    path: str
-    git: Optional[GitRepo] = None
-
-
-class VaultCertificates(BaseModel):
-    destination: str
-    vault_server: HttpUrl
-    pki_mount: str
-    pki_role: str
-    pki_ttl: str
-
-
-class HostSpecificFiles(BaseModel):
-    vault_certificates: Optional[VaultCertificates]
-
-
-class Files(BaseModel):
-    common_files: List[FileEntry]
-    host_specific_files: HostSpecificFiles
-
-
-class Profile(BaseModel):
-    name: str
-    target: str
-    arch: str
-    packages: Optional[List[str]] = None
-    files: Files
-
-
-class PtahConfig(BaseModel):
-    profiles: List[Profile]
-
-
 # ------------------------------- Helper Functions ------------------------------ #
-BUILD_DIR = "build"
-OPENWRT_BASE_RELEASES_URL = "https://downloads.openwrt.org/releases"
-OPENWRT_BUILDER_FILE_EXT = ".Linux-x86_64.tar.zst"
-
-
 def extract_tar_zst(input_path: Path, output_dir: Path):
     with open(input_path, "rb") as compressed_file:
         dctx = zstd.ZstdDecompressor()
@@ -109,7 +57,7 @@ def clone_git_repo(file: FileEntry, dest: Path):
         os._exit(1)
 
 
-def process_common_file(file: FileEntry, tmp_git_path: Path, output_path: Path):
+def handle_files_for_profile(file: FileEntry, tmp_git_path: Path, output_path: Path):
     if file.type == "git":
         repo_name = Path(file.git.url).stem
         repo_path = tmp_git_path / f"{repo_name}"
@@ -153,7 +101,7 @@ def get_openwrt_latest_release():
     return latest_release
 
 
-def get_profile_image_builder(
+def fetch_openwrt_image_builder(
     profile: Profile, openwrt_version: str, profile_path: Path, tmp_path: Path
 ):
     target_url = f"{OPENWRT_BASE_RELEASES_URL}/{openwrt_version}/targets/{profile.target}/{profile.arch}"
@@ -199,7 +147,7 @@ def prepare_commands(
         f'PROFILE="{profile.name}" '
         f'PACKAGES="{packages}" '
         f'EXTRA_IMAGE_NAME="ptah-{ptah_version if ptah_version else "no_version"}" '
-        f'FILES="{Path("/") / profile_path / "files"}" '
+        f'FILES="{profile_path / "files"}" '
         f'BUILD_DIR="{Path("/") / Path("bin")}"'
     )
 
@@ -211,10 +159,6 @@ def main(
     config_path: Optional[Path], openwrt_version: str, ptah_version: Optional[str]
 ):
     load_dotenv()
-
-    if not config_path:
-        print("Please provide path to configuration file")
-        os._exit(1)
 
     try:
         with open(config_path, "r") as file:
@@ -239,17 +183,23 @@ def main(
             recreate_dir(path)
 
         for file in profile.files.common_files:
-            process_common_file(file, tmp_git_path, tmp_path)
+            handle_files_for_profile(file, tmp_git_path, tmp_path)
 
         merge_tmp_to_files(tmp_path, files_path)
 
-        get_profile_image_builder(profile, openwrt_version, profile_path, tmp_path)
+        fetch_openwrt_image_builder(profile, openwrt_version, profile_path, tmp_path)
 
         prepare_commands(profile, openwrt_version, ptah_version, profile_path)
+        
+        rmtree(tmp_path)
 
 
 # --------------------------------- Entry Point --------------------------------- #
 if __name__ == "__main__":
+    BUILD_DIR = "build"
+    OPENWRT_BASE_RELEASES_URL = "https://downloads.openwrt.org/releases"
+    OPENWRT_BUILDER_FILE_EXT = ".Linux-x86_64.tar.zst"
+
     parser = argparse.ArgumentParser(description="Ptah Configuration Processor")
     parser.add_argument(
         "--config", required=True, help="Path to Ptah configuration file"
@@ -257,8 +207,34 @@ if __name__ == "__main__":
     parser.add_argument("--openwrt-version", help="OpenWRT version to build")
 
     parser.add_argument("--ptah-version", help="Ptah version to build")
+    
+    parser.add_argument("--output-dir", help="Output directory to store the build artifacts")
+
+    parser.add_argument("--secrets-source", help="Tell what is the source of the secrets (env, file, etc.)")
+    parser.add_argument(
+        "--secrets-file", help="Path to the secrets file if using file as source"
+    )
 
     args = parser.parse_args()
+
+    # ------------------------------ Secrets sources ----------------------------- #
+    SECRETS_SOURCE = args.secrets_source
+    if not SECRETS_SOURCE:
+        print("Please provide the source of the secrets")
+        os._exit(1)
+    if SECRETS_SOURCE == "file":
+        if not args.secrets_file:
+            print("Please provide the path to the secrets file")
+            os._exit(1)
+
+    load_dotenv(args.secrets_file) if SECRETS_SOURCE == "file" else None
+
+    # ---------------------------------- Config ---------------------------------- #
+    if not args.config:
+        print("Please provide path to configuration file")
+        os._exit(1)
+    
+    BUILD_DIR = args.output_dir if args.output_dir else BUILD_DIR
 
     if not args.openwrt_version:
         print(

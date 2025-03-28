@@ -15,12 +15,7 @@ ARG openwrt_version
 ARG ptah_version
 ARG ptah_config
 
-#build_args:{% for key in ptah_config.credentials.keys() %} --build-arg {{ key }}=${{ key }}{% endfor %}
-{% for key in ptah_config.credentials.keys() %}
-ARG {{ key }}
-ENV {{ key }}=${{ key }}
-{% endfor %}
-
 # Prepare the image builder
-RUN python3 /app/ptah/prepare_image_builder.py --config ${ptah_config} \ 
-    --ptah-version ${ptah_version} --openwrt-version ${openwrt_version} --output-dir "/build"
+RUN --mount=type=secret,id=credentials python3 /app/ptah/prepare_image_builder.py --config ${ptah_config} \ 
+    --ptah-version ${ptah_version} --openwrt-version ${openwrt_version} --output-dir "/build" \
+    --secrets-source "file" --secrets-file "/run/secrets/credentials" \

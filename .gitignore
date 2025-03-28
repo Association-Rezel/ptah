@@ -1,5 +1,7 @@
 build
 local_files
 .venv
+venv
 ptah-config.yaml
 .env
+__pycache__
