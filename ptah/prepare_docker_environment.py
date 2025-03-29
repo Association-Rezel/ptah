@@ -13,7 +13,7 @@ from utils import (
 )
 import requests
 
-class DockerPrepareEnvironment:
+class PrepareDockerEnvironment:
     BUILDERS_PATH: Path
     GIT_REPO_PATH: Path
     OUTPUT_PATH: Path
@@ -116,5 +116,5 @@ if __name__ == "__main__":
         raise ValueError("Please provide path to configuration file")
     load_dotenv(args.docker_secrets_mount)
 
-    DockerPrepareEnvironment(args.config).main()
+    PrepareDockerEnvironment(args.config).main()
 
