@@ -1,0 +1,41 @@
+ptah_profiles:
+  - name: ac2350
+    openwrt_profile: 
+      name: xiaomi_aiot_ac2350
+      target: ath79
+      arch: generic
+      openwrt_version: 24.10.0
+    packages:
+      - '-luci'
+      - 'curl'
+      - 'libcurl'
+    files:
+      profile_shared_files:
+        - name: go_daemon
+          type: git
+          path: router_files
+          git:
+            url: https://github.com/association-rezel/go_daemon.git
+            type: http
+            credentials:
+              username_environ: GIT_USER_1
+              password_environ: GIT_TOKEN_1
+      router_specific_files:
+        vault_certificates:
+          destination: /etc/ssl/certs
+          vault_server: https://vault.hashicorp.com
+          pki_mount: pki
+          pki_role: openwrt
+          pki_ttl: 5y
+
+credentials:
+  GIT_USER_1:
+  GIT_TOKEN_1:
+
+global_settings:
+  openwrt_base_releases_url: https://downloads.openwrt.org/releases
+  openwrt_builder_file_ext: .Linux-x86_64.tar.zst
+  git_repo_path: /opt/git
+  builders_path: /opt/builders
+  output_path: /opt/output
+

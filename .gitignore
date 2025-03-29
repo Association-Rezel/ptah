@@ -2,6 +2,7 @@ build
 local_files
 .venv
 venv
-ptah-config.yaml
+ptah_config.yaml
 .env
 __pycache__
+tmp

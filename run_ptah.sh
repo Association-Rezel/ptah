@@ -26,7 +26,7 @@ fi
 # Function to display usage/help
 usage() {
     echo -e "${RED}Usage: $0 --config <Path to ptah config yaml> \
-    [--openwrt-version <OpenWRT Version number to build to>] [--ptah-version <Ptah version] ${NC}"
+    --docker-secrets-source <Path to file .env like> [--ptah-version <Ptah version>] ${NC}"
     exit 1
 }
 
@@ -42,7 +42,7 @@ done
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --config) CONFIG="$2"; shift ;;
-        --openwrt-version) OPENWRT_VERSION="$2"; shift ;;
+        --docker-secrets-source) DOCKER_SECRETS_SOURCE="$2"; shift ;;
         --ptah-version) PTAH_VERSION="$2"; shift ;;
         *) echo -e "${RED}Unknown parameter passed: $1${NC}"; usage; exit 1 ;;
     esac
@@ -50,44 +50,28 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Check if the required flags are passed
-if [[ -z "$CONFIG" ]]; then
+if [[ -z "$CONFIG" || -z "$DOCKER_SECRETS_SOURCE" ]]; then
     echo -e "${RED}Missing required arguments${NC}"
     usage
     exit 1
 fi
 
-# Check if the config file exists
-if [[ ! -f "$CONFIG" ]]; then
-    echo -e "${RED}Config file not found${NC}"
+if [[ ! -f "$CONFIG" || ! -f "$DOCKER_SECRETS_SOURCE" ]]; then
+    echo -e "${RED}File not found${NC}"
     exit 1
-fi
-
-LATEST_RELEASE=$(curl -s $OPENWRT_RELEASE_URL | grep -oP "([0-9]+\.[0-9]+\.[0-9]+)" |sort -V |tail -n1)
-echo -e "${BLUE}Latest OpenWRT release: $LATEST_RELEASE${NC}"
-
-# Check if the openwrt version is passed
-if [[ -z "$OPENWRT_VERSION" ]]; then
-    echo -e "${YELLOW}OpenWRT version not passed. Defaulting to latest: $LATEST_RELEASE ${NC}"
-    OPENWRT_VERSION=$LATEST_RELEASE
 fi
 
 # Check if the ptah version is passed
 if [[ -z "$PTAH_VERSION" ]]; then
     echo -e "${YELLOW}Ptah version not passed. Defaulting to latest${NC}"
     PTAH_VERSION="ptah:latest"
-fi
-
-# Check if the openwrt version is valid
-if [[ ! $(curl -s "$OPENWRT_RELEASE_URL" | grep -oP "([0-9]+\.[0-9]+\.[0-9]+)" | grep -w "$OPENWRT_VERSION") ]]; then
-    echo -e "${RED}Invalid OpenWRT version${NC}"
-    exit 1
+else
+    PTAH_VERSION="ptah:$PTAH_VERSION"
 fi
 
 # ---------------------------------------------------------------------------- #
 #                              Build Docker image                              #
 # ---------------------------------------------------------------------------- #
 
-docker build -t $PTAH_VERSION . --secret id=credentials,src=.env \
-    --build-arg openwrt_version="$OPENWRT_VERSION" \
-    --build-arg ptah_version="$PTAH_VERSION" \
+docker build -t $PTAH_VERSION . --secret id=credentials,src=$DOCKER_SECRETS_SOURCE \
     --build-arg ptah_config="$CONFIG"
