@@ -1,0 +1,7 @@
+services:
+  ptah:
+    image: ptah:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ptah:/app:Z

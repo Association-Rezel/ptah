@@ -4,8 +4,9 @@ from pathlib import Path
 from shutil import rmtree
 from dotenv import load_dotenv
 from models.PtahConfig import *
-from utils import (
+from utils.utils import (
     extract_tar_zst,
+    load_ptah_config,
     recreate_dir,
     echo_to_file,
     clone_git_repo,
@@ -25,12 +26,7 @@ class PrepareDockerEnvironment:
     
     def __init__(self, config: str):
         config_path = Path(config)
-        if not config_path.is_file():
-            raise FileNotFoundError(f"Configuration file {config_path} does not exist")
-
-        with open(config_path, "r") as file:
-            config_data = yaml.safe_load(file)
-        self.ptah_config = PtahConfig.model_validate(config_data)
+        self.ptah_config = load_ptah_config(config_path)
 
         self.BUILDERS_PATH = self.ptah_config.global_settings.builders_path
         self.GIT_REPO_PATH = self.ptah_config.global_settings.git_repo_path
@@ -80,7 +76,7 @@ class PrepareDockerEnvironment:
         extract_tar_zst(archive_path, unpack_dir)
         # The .stem.stem is used to remove .tar.zst from the archive name
         archive_extracted_path = Path(Path(archive_name).stem).stem
-        echo_to_file(profile_path / "builder_folder", f"{archive_extracted_path}\n")
+        echo_to_file(profile_path / "builder_folder", f"{archive_extracted_path}")
         
 
     # ---------------------------------- Main Logic --------------------------------- #

@@ -18,3 +18,5 @@ COPY ./${ptah_config} /opt/ptah_config.yaml
 # Prepare the image builder
 RUN --mount=type=secret,id=credentials python3 /app/prepare_docker_environment.py --config /opt/ptah_config.yaml \ 
     --docker-secrets-mount /run/secrets/credentials
+
+ENTRYPOINT [ "uvicorn", "main:app", "--host", "::", "--reload" ]

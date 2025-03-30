@@ -2,11 +2,24 @@ import os
 import git
 from pathlib import Path
 from shutil import rmtree
+
+import yaml
 from models.PtahConfig import *
 import requests
 import zstandard as zstd
 import io
 import tarfile
+
+def load_ptah_config(config_path: Path) -> PtahConfig:
+    if not config_path.is_file():
+        raise FileNotFoundError(f"Configuration file {config_path} does not exist")
+
+    with open(config_path, "r") as file:
+        config_data = yaml.safe_load(file)
+    return PtahConfig.model_validate(config_data)
+
+def mac_to_filename_compliant(mac: str) -> str:
+    return mac.replace(":", "-").replace("_", "-").replace(".", "_")
 
 def extract_tar_zst(input_path: Path, output_dir: Path):
     with open(input_path, "rb") as compressed_file:

@@ -1,7 +1,7 @@
 ptah_profiles:
   - name: ac2350
     openwrt_profile: 
-      name: xiaomi_aiot_ac2350
+      name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
       openwrt_version: 24.10.0

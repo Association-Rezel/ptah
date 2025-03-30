@@ -5,3 +5,6 @@ gitpython
 python-dotenv
 requests
 zstandard
+fastapi
+netaddr
+uvicorn
