@@ -1,159 +1,147 @@
 from pathlib import Path
 from typing import List
 
-from pydantic import HttpUrl
 import requests
-from models.PtahConfig import FileEntry, GitlabRelease
-from models.BuildCallObject import BuildCallObject
-import zipfile
 import re
+import zipfile
 
-from models.RouterFilesOrganizer import RouterFilesOrganizerFile
+from pydantic import HttpUrl
+from models import FileEntry, GitlabRelease, PathTransferHandler
+from contexts import BuildContext
 
-
-def get_gitlab_url(url: HttpUrl, token: str) -> requests.Response:
+def fetch_gitlab_api(url: HttpUrl, token: str) -> requests.Response:
+    """Send GET request to GitLab API with token."""
     return requests.get(url, headers={"PRIVATE-TOKEN": token})
 
 
-def get_release_info(url: HttpUrl, token: str) -> dict:
-    """
-    Get release information from a GitLab URL.
-    """
-    response = get_gitlab_url(url, token)
+def get_gitlab_release_info(release_url: HttpUrl, token: str) -> dict:
+    """Retrieve release metadata from GitLab."""
+    response = fetch_gitlab_api(release_url, token)
     if response.status_code == 200:
         return response.json()
-    else:
-        raise ValueError(f"Failed to fetch release information: {response.status_code}")
+    raise ValueError(f"Failed to fetch release information: {response.status_code}")
 
 
-def download_asset(asset_url: HttpUrl, destination: Path, token: str):
+def download_asset_file(asset_url: HttpUrl, download_dir: Path, token: str) -> str:
+    """
+    Download an asset from a GitLab release and save it to the specified directory.
+    Returns the downloaded filename.
+    """
     headers = {"Authorization": f"Bearer {token}"}
     with requests.get(asset_url, headers=headers, stream=True) as response:
-        if response.status_code == 200:
-            filname_re = r"^.*filename=\"([^\"]+)\".*$"
-            filename = re.search(
-                filname_re, response.headers["Content-Disposition"]
-            ).group(1)
-            destination = destination / filename
-            with open(destination, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        else:
+        if response.status_code != 200:
             raise ValueError(f"Failed to download asset: {response.status_code}")
+
+        content_disposition = response.headers.get("Content-Disposition", "")
+        match = re.search(r'^.*filename="([^"]+)".*$', content_disposition)
+        if not match:
+            raise ValueError("Filename could not be extracted from headers.")
+
+        filename = match.group(1)
+        file_path = download_dir / filename
+
+        with open(file_path, "wb") as output_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                output_file.write(chunk)
+
     return filename
 
 
-def download_release_files(
-    gitlab_release: GitlabRelease,
-    gitlab_release_info: dict,
+def download_gitlab_release_files(
+    release_config: GitlabRelease,
+    release_info: dict,
     token: str,
-    destination: Path,
+    target_dir: Path,
 ) -> None:
-    if gitlab_release.assets:
-        links = gitlab_release_info["assets"]["links"]
-        available_assets = {}
-        for link in links:
-            available_assets[link["name"]] = link["url"]
-        for asset in gitlab_release.assets:
-            if not asset.name in available_assets.keys():
-                raise ValueError(f"Asset {asset.name} not found in release.")
-            asset_url = available_assets[asset.name]
-            download_asset(
-                asset_url,
-                destination,
-                token,
-            )
+    """Download assets and source from a GitLab release into target directory."""
 
-    if gitlab_release.source:
-        sources = gitlab_release_info["assets"]["sources"]
-        available_sources = {}
-        for source in sources:
-            available_sources[source["format"]] = source["url"]
-        if not "zip" in available_sources.keys():
+    if release_config.assets:
+        asset_links = release_info["assets"]["links"]
+        asset_url_map = {link["name"]: link["url"] for link in asset_links}
+
+        for expected_asset in release_config.assets:
+            if expected_asset.name not in asset_url_map:
+                raise ValueError(f"Asset '{expected_asset.name}' not found in release.")
+            download_asset_file(asset_url_map[expected_asset.name], target_dir, token)
+
+    if release_config.source:
+        source_links = release_info["assets"]["sources"]
+        source_url_map = {source["format"]: source["url"] for source in source_links}
+
+        if "zip" not in source_url_map:
             raise ValueError("Source zip file not found in release.")
-        source_url = available_sources["zip"]
-        downloaded_filename = download_asset(
-            source_url,
-            destination,
-            token,
-        )
-        unzip_path = destination
-        unzip_path.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(destination / downloaded_filename, "r") as zip_ref:
-            zip_ref.extractall(unzip_path)
 
-        source_folder = destination / (Path(downloaded_filename).stem)
-        source_folder.rename(destination / "source")
+        zip_filename = download_asset_file(source_url_map["zip"], target_dir, token)
+
+        with zipfile.ZipFile(target_dir / zip_filename, "r") as zip_ref:
+            zip_ref.extractall(target_dir)
+
+        extracted_dir = target_dir / Path(zip_filename).stem
+        extracted_dir.rename(target_dir / "source")
 
 
 class SharedFilesHandler:
-    bao: BuildCallObject
+    def __init__(self, build_context: BuildContext):
+        self.build_context = build_context
 
-    def __init__(self, build_call_object: BuildCallObject):
-        self.bao = build_call_object
-
-    def handle_gitlab_release(self, file: FileEntry):
-        """
-        Handle GitLab release files.
-        """
-        token = self.bao.secrets[file.gitlab_release.credentials.token]
-        if not file.gitlab_release:
+    def handle_gitlab_release_file(self, file_entry: FileEntry):
+        """Process GitLab release-based file entry."""
+        if not file_entry.gitlab_release:
             raise ValueError("GitLab release information is missing.")
 
-        gitlab_release_info = get_release_info(file.gitlab_release.release_url, token)
+        token_name = file_entry.gitlab_release.credentials.token
+        token = self.build_context.secrets[token_name]
+        release_info = get_gitlab_release_info(file_entry.gitlab_release.release_url, token)
+        release_tag = str(release_info["tag_name"])
 
-        tag_name = gitlab_release_info["tag_name"]
+        self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")
 
-        self.bao.versions.append(f"{file.name}{tag_name}")
+        release_output_dir = Path(
+            self.build_context.global_settings.gitlab_releases_output_path
+        ) / file_entry.name / release_tag
 
-        release_files_path = Path(
-            self.bao.global_settings.gitlab_releases_output_path / file.name / tag_name
-        )
-        if not release_files_path.is_dir():
-            release_files_path.mkdir(parents=True, exist_ok=True)
-            download_release_files(
-                file.gitlab_release,
-                gitlab_release_info,
+        if not release_output_dir.is_dir():
+            release_output_dir.mkdir(parents=True, exist_ok=True)
+            download_gitlab_release_files(
+                file_entry.gitlab_release,
+                release_info,
                 token,
-                release_files_path,
+                release_output_dir,
             )
-        release_dir_content = [
-            _file.name for _file in list(release_files_path.iterdir())
-        ]
-        if file.gitlab_release.assets:
-            for asset in file.gitlab_release.assets:
-                if asset.name not in release_dir_content:
-                    raise ValueError(f"Asset {asset.name} not found in files.")
-                src_asset_path = release_files_path / asset.name
-                dest_asset_path = asset.destination
-                self.bao.router_files.files.append(
-                    RouterFilesOrganizerFile(
-                        source=src_asset_path,
-                        dest=dest_asset_path,
+
+        downloaded_files = {item.name for item in release_output_dir.iterdir()}
+
+        if file_entry.gitlab_release.assets:
+            for asset in file_entry.gitlab_release.assets:
+                if asset.name not in downloaded_files:
+                    raise ValueError(f"Expected asset '{asset.name}' not found.")
+                self.build_context.router_files.file_transfer_entries.append(
+                    PathTransferHandler(
+                        source=release_output_dir / asset.name,
+                        dest=asset.destination,
                     )
                 )
-        if file.gitlab_release.source:
-            for source in file.gitlab_release.source.paths:
-                src_source_path = Path(release_files_path / "source" / source)
-                if not src_source_path.is_dir():
-                    raise ValueError(f"Source {source} not found in release.")
-                self.bao.router_files.files.append(
-                    RouterFilesOrganizerFile(
-                        source=src_source_path,
+
+        if file_entry.gitlab_release.source:
+            for source_path in file_entry.gitlab_release.source.paths:
+                full_source_path = release_output_dir / "source" / source_path
+                if not full_source_path.is_dir():
+                    raise ValueError(f"Source path '{source_path}' not found.")
+                self.build_context.router_files.file_transfer_entries.append(
+                    PathTransferHandler(
+                        source=full_source_path,
                         dest=Path("/"),
                     )
                 )
 
     def handle_shared_files(self):
-        """
-        Handle shared files for a given profile.
-        """
-        for file in self.bao.profile.files.profile_shared_files:
-            if file.type == "git":
-                raise NotImplementedError("Git Repo handling not implemented yet")
-            elif file.type == "local":
-                raise NotImplementedError("Local file handling not implemented yet")
-            elif file.type == "gitlab_release":
-                self.handle_gitlab_release(file)
+        """Handle all shared files in the current profile."""
+        for file_entry in self.build_context.profile.files.profile_shared_files:
+            if file_entry.type == "git":
+                raise NotImplementedError("Git repository handling is not implemented yet.")
+            elif file_entry.type == "local":
+                raise NotImplementedError("Local file handling is not implemented yet.")
+            elif file_entry.type == "gitlab_release":
+                self.handle_gitlab_release_file(file_entry)
             else:
-                raise ValueError(f"Invalid file type: {file.type}")
+                raise ValueError(f"Unsupported file type: {file_entry.type}")

@@ -29,5 +29,5 @@ class PortableMac(str):
         return cls(normalized)
 
     # Placeholder method
-    def filename_compliant(self):
+    def to_filename_compliant(self):
         return self.replace(":", "-").replace("_", "-").replace(".", "_")

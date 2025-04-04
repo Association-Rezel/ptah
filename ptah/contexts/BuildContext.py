@@ -2,15 +2,16 @@ from pathlib import Path
 from models.PtahConfig import GlobalSettings, PtahProfile
 from hashlib import sha256
 
-from models.RouterFilesOrganizer import RouterFilesOrganizer
-from models.base import PortableMac
+from models import RouterFilesOrganizer
+from models import PortableMac
+from models import Versions
 
 
-class BuildCallObject:
+class BuildContext:
     mac: PortableMac
     profile: PtahProfile
     global_settings: GlobalSettings
-    versions: list
+    versions: Versions
     secrets: dict
     router_files: RouterFilesOrganizer
     final_version: str
@@ -21,7 +22,7 @@ class BuildCallObject:
         profile: PtahProfile,
         global_settings: GlobalSettings,
         secrets: dict,
-        versions: list,
+        versions: Versions,
         router_files: RouterFilesOrganizer,
     ):
         self.mac = mac
@@ -31,9 +32,3 @@ class BuildCallObject:
         self.versions = versions
         self.router_files = router_files
 
-    def compute_versions_hash(self):
-        """
-        Compute the hash of the versions list.
-        """
-        versions_str = "".join(self.versions)
-        return sha256(versions_str.encode()).hexdigest()

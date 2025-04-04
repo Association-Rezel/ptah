@@ -3,13 +3,14 @@ import subprocess
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from models.build import BuildRequest
-from models.PtahConfig import PtahConfig, PtahProfile
-from models.BuildCallObject import BuildCallObject
-from models.RouterFilesOrganizer import RouterFilesOrganizer
-from models.base import PortableMac
-from utils.handle_router_specific_files import HandleRouterSpecificFiles
+from models import PtahConfig, PtahProfile
+from contexts import BuildContext
+from models import RouterFilesOrganizer
+from models import PortableMac
+from models import Versions
+from utils.handle_router_specific_files import RouterSpecificFilesHandler
 from utils.handle_shared_files import SharedFilesHandler
-from utils.utils import mac_to_filename_compliant, recreate_dir
+from utils.utils import recreate_dir
 from .dependencies import get_config, read_secrets
 from shutil import move
 
@@ -58,28 +59,32 @@ def build_endpoint(
     secrets: dict = Depends(read_secrets),
 ):
     mac = request.mac
-    mac_fc = mac.filename_compliant()
+    mac_fc = mac.to_filename_compliant()
     if (ptah_profile := check_profile_exists(request.profile, config)) is None:
-        return {"error": "Profile not found"}, 404
+        return HTTPException(
+            status_code=404,
+            detail=f"Profile {request.profile} not found.",
+        )
 
     router_files = RouterFilesOrganizer(
         mac=mac,
         global_settings=config.global_settings,
     )
 
-    bao = BuildCallObject(
+    build_context = BuildContext(
         mac=mac,
         profile=ptah_profile,
         global_settings=config.global_settings,
         secrets=secrets,
-        versions=[],
+        versions=Versions(ptah_profile),
         router_files=router_files,
     )
+
     files_dest_path = Path(config.global_settings.routers_files_path / mac_fc)
     recreate_dir(files_dest_path)
-    sfh = SharedFilesHandler(bao)
+    sfh = SharedFilesHandler(build_context)
 
-    hrsf = HandleRouterSpecificFiles(bao)
+    hrsf = RouterSpecificFilesHandler(build_context)
     sfh.handle_shared_files()
     hrsf.handle_router_specific_files()
 
@@ -90,8 +95,10 @@ def build_endpoint(
         config,
         mac_fc,
     )
+
     binary_name = ptah_profile.openwrt_profile.get_generated_binary_name(mac_fc)
     binary_path = config.global_settings.output_path / mac_fc / binary_name
+
     if not binary_path.exists():
         return HTTPException(
             status_code=500,
@@ -104,7 +111,7 @@ def build_endpoint(
         content={
             "message": "Build completed successfully.",
             "mac": mac,
-            "ptah_version_hash": bao.final_version,
+            "ptah_version_hash": build_context.final_version,
             "download_url": f"/build/download/{mac}",
         },
         status_code=200,
@@ -116,7 +123,7 @@ def download_build_endpoint(
     mac: PortableMac,
     config: PtahConfig = Depends(get_config),
 ):
-    mac_fc = mac.filename_compliant()
+    mac_fc = mac.to_filename_compliant()
     binary_name = f"ptah.bin"
     binary_path = config.global_settings.output_path / mac_fc / binary_name
     if not binary_path.exists():

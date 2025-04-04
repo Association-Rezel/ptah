@@ -6,6 +6,6 @@ router = APIRouter()
 router.include_router(build_router)
 
 
-@router.get("/hello")
-def hello(name: str = "World"):
-    return "Hello, {name}!"
+@router.get("/")
+def getRoot():
+    return "Welcome to the Ptah API!"

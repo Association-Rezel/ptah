@@ -1,6 +1,6 @@
 import re
 from pydantic import BaseModel
-from .base import PortableMac
+from .PortableMac import PortableMac
 
 
 class BuildRequest(BaseModel):

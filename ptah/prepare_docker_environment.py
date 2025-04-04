@@ -2,15 +2,12 @@ import argparse
 import yaml
 from pathlib import Path
 from shutil import rmtree
-from dotenv import load_dotenv
 from models.PtahConfig import *
 from utils.utils import (
     extract_tar_zst,
     load_ptah_config,
     recreate_dir,
     echo_to_file,
-    clone_git_repo,
-    get_secrets,
 )
 import requests
 

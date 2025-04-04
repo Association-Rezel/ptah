@@ -4,23 +4,23 @@ from models.PtahConfig import PtahProfile
 
 
 class Versions:
-    _list: list[str] = []
+    versions: list[str] = []
     profile: PtahProfile
 
     def __init__(self, profile: PtahProfile):
         self.profile = profile
-        self._list = []
-        self._list.append(
-            hashlib.sha256(json.dumps(profile)).hexdigest().encode("utf-8")
+        self.versions = []
+        self.versions.append(
+            hashlib.sha256(json.dumps(profile.model_dump_json()).encode("utf-8")).hexdigest()
         )
-        self._list.append(profile.openwrt_profile.openwrt_version)
+        self.versions.append(profile.openwrt_profile.openwrt_version)
 
-    def hash(self):
+    def compute_versions_hash(self):
         """
         Compute the hash of the versions list.
         """
-        print(self._list)
+        print(self.versions)
         hash = hashlib.sha256()
-        for item in self._list:
-            hash.update(item.encode("utf-8"))
+        for version in self.versions:
+            hash.update(version.encode("utf-8"))
         return hash.hexdigest()
