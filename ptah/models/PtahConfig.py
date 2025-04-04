@@ -44,22 +44,25 @@ class FileEntry(BaseModel):
     type: Literal["gitlab_release"]
     gitlab_release: Optional[GitlabRelease]
 
+class VaultCredentialsReference(BaseModel):
+    token: str
 
 class VaultCertificates(BaseModel):
     destination: str
     vault_server: HttpUrl
     pki_mount: str
     pki_role: str
-    pki_ttl: str
+    cn_suffix: str
+    credentials: VaultCredentialsReference
 
-
-class RouterSpecificFiles(BaseModel):
-    vault_certificates: Optional[VaultCertificates] = None
-
+class SpecificFileEntry(BaseModel):
+    name: str
+    type: Literal["vault_certificates"]
+    vault_certificates: Optional[VaultCertificates]
 
 class Files(BaseModel):
     profile_shared_files: List[FileEntry]
-    router_specific_files: RouterSpecificFiles
+    router_specific_files: List[SpecificFileEntry]
 
 
 class OpenWrtProfile(BaseModel):
