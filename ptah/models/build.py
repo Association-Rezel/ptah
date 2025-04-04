@@ -3,10 +3,5 @@ from pydantic import BaseModel
 from .PortableMac import PortableMac
 
 
-class BuildRequest(BaseModel):
+class BuildPrepareRequest(BaseModel):
     profile: str
-    mac: PortableMac
-
-
-class DownloadBuildRequest(BaseModel):
-    mac: PortableMac

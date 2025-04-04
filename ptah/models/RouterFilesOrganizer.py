@@ -9,6 +9,7 @@ from models import PortableMac
 from models import PathTransferHandler
 from utils.utils import recreate_dir
 
+
 class RouterFilesOrganizer:
     mac: PortableMac
     global_settings: GlobalSettings
@@ -24,7 +25,9 @@ class RouterFilesOrganizer:
     # - If a file is a directory, merges its contents.
     # - If a file is a regular file, it copies it.
     def merge_files_to_router_files(self):
-        router_directory = self.global_settings.routers_files_path / self.mac.to_filename_compliant()
+        router_directory = (
+            self.global_settings.routers_files_path / self.mac.to_filename_compliant()
+        )
         recreate_dir(router_directory)
 
         for file_handler in self.file_transfer_entries:

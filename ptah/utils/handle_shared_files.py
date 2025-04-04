@@ -9,6 +9,7 @@ from pydantic import HttpUrl
 from models import FileEntry, GitlabRelease, PathTransferHandler
 from contexts import BuildContext
 
+
 def fetch_gitlab_api(url: HttpUrl, token: str) -> requests.Response:
     """Send GET request to GitLab API with token."""
     return requests.get(url, headers={"PRIVATE-TOKEN": token})
@@ -91,14 +92,18 @@ class SharedFilesHandler:
 
         token_name = file_entry.gitlab_release.credentials.token
         token = self.build_context.secrets[token_name]
-        release_info = get_gitlab_release_info(file_entry.gitlab_release.release_url, token)
+        release_info = get_gitlab_release_info(
+            file_entry.gitlab_release.release_url, token
+        )
         release_tag = str(release_info["tag_name"])
 
         self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")
 
-        release_output_dir = Path(
-            self.build_context.global_settings.gitlab_releases_output_path
-        ) / file_entry.name / release_tag
+        release_output_dir = (
+            Path(self.build_context.global_settings.gitlab_releases_output_path)
+            / file_entry.name
+            / release_tag
+        )
 
         if not release_output_dir.is_dir():
             release_output_dir.mkdir(parents=True, exist_ok=True)
@@ -138,7 +143,9 @@ class SharedFilesHandler:
         """Handle all shared files in the current profile."""
         for file_entry in self.build_context.profile.files.profile_shared_files:
             if file_entry.type == "git":
-                raise NotImplementedError("Git repository handling is not implemented yet.")
+                raise NotImplementedError(
+                    "Git repository handling is not implemented yet."
+                )
             elif file_entry.type == "local":
                 raise NotImplementedError("Local file handling is not implemented yet.")
             elif file_entry.type == "gitlab_release":

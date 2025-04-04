@@ -1,10 +1,11 @@
 from pathlib import Path
 import subprocess
-from fastapi import APIRouter, Depends, HTTPException
+from typing import cast
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
-from models.build import BuildRequest
+from models.build import BuildPrepareRequest
 from models import PtahConfig, PtahProfile
-from contexts import BuildContext
+from contexts import BuildContext, AppContext
 from models import RouterFilesOrganizer
 from models import PortableMac
 from models import Versions
@@ -52,18 +53,27 @@ def run_make_build(profile: PtahProfile, config: PtahConfig, mac: str) -> bool:
     return True
 
 
-@router.post("/build")
+@router.post("/build/prepare/{mac}")
 def build_endpoint(
-    request: BuildRequest,
+    request: Request,
+    mac: PortableMac,
+    request_data: BuildPrepareRequest,
     config: PtahConfig = Depends(get_config),
     secrets: dict = Depends(read_secrets),
 ):
-    mac = request.mac
+    ctx = cast(AppContext, request.app.state.ctx)
+    build_contexts = ctx.build_contexts
+    if not ctx:
+        raise HTTPException(
+            status_code=500,
+            detail="Application context not initialized.",
+        )
+
     mac_fc = mac.to_filename_compliant()
-    if (ptah_profile := check_profile_exists(request.profile, config)) is None:
+    if (ptah_profile := check_profile_exists(request_data.profile, config)) is None:
         return HTTPException(
             status_code=404,
-            detail=f"Profile {request.profile} not found.",
+            detail=f"Profile {request_data.profile} not found.",
         )
 
     router_files = RouterFilesOrganizer(
@@ -79,6 +89,7 @@ def build_endpoint(
         versions=Versions(ptah_profile),
         router_files=router_files,
     )
+    build_contexts[mac] = build_context
 
     files_dest_path = Path(config.global_settings.routers_files_path / mac_fc)
     recreate_dir(files_dest_path)
@@ -90,13 +101,46 @@ def build_endpoint(
 
     router_files.merge_files_to_router_files()
 
+    return JSONResponse(
+        content={
+            "message": "Build prepared successfully.",
+            "mac": mac,
+            "ptah_version_hash": build_context.final_version,
+            "download_url": f"/build/{mac}",
+        },
+        status_code=200,
+    )
+
+
+@router.post("/build/{mac}")
+def download_build_endpoint(
+    request: Request,
+    mac: PortableMac,
+    config: PtahConfig = Depends(get_config),
+):
+    ctx = cast(AppContext, request.app.state.ctx)
+    if not ctx:
+        raise HTTPException(
+            status_code=500,
+            detail="Application context not initialized.",
+        )
+    if mac not in ctx.build_contexts:
+        return HTTPException(
+            status_code=404,
+            detail=f"Build context for {mac} not found. Please prepare the build first.",
+        )
+    build_context = ctx.build_contexts[mac]
+    mac_fc = mac.to_filename_compliant()
+
     run_make_build(
-        ptah_profile,
+        build_context.profile,
         config,
         mac_fc,
     )
 
-    binary_name = ptah_profile.openwrt_profile.get_generated_binary_name(mac_fc)
+    binary_name = build_context.profile.openwrt_profile.get_generated_binary_name(
+        mac_fc
+    )
     binary_path = config.global_settings.output_path / mac_fc / binary_name
 
     if not binary_path.exists():
@@ -105,37 +149,17 @@ def build_endpoint(
             detail=f"Build failed.",
         )
 
-    move(binary_path, config.global_settings.output_path / mac_fc / "ptah.bin")
-
-    return JSONResponse(
-        content={
-            "message": "Build completed successfully.",
-            "mac": mac,
-            "ptah_version_hash": build_context.final_version,
-            "download_url": f"/build/download/{mac}",
-        },
-        status_code=200,
-    )
-
-
-@router.get("/build/download/{mac}")
-def download_build_endpoint(
-    mac: PortableMac,
-    config: PtahConfig = Depends(get_config),
-):
-    mac_fc = mac.to_filename_compliant()
-    binary_name = f"ptah.bin"
-    binary_path = config.global_settings.output_path / mac_fc / binary_name
     if not binary_path.exists():
         raise HTTPException(
             status_code=404,
             detail="File not found",
         )
+    download_binary_name = "ptah.bin"
     return FileResponse(
         path=binary_path,
-        filename=binary_name,
+        filename=download_binary_name,
         media_type="application/octet-stream",
         headers={
-            "Content-Disposition": f"attachment; filename={binary_name}",
+            "Content-Disposition": f"attachment; filename={download_binary_name}",
         },
     )

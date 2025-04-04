@@ -9,6 +9,21 @@ class RouterSpecificFilesHandler:
     def __init__(self, build_context: BuildContext):
         self.build_context = build_context
 
+    def handle_vault_certificates(self):
+        """
+        Handle vault certificates for the router.
+        """
+        vault_certificates = (
+            self.build_context.profile.files.router_specific_files.vault_certificates
+        )
+        if not vault_certificates:
+            return
+        vault_pki_role_url = (
+            f"{vault_certificates.vault_server}/v1/"
+            f"{vault_certificates.pki_mount}"
+            f"/roles/{vault_certificates.pki_role}"
+        )
+
     def handle_router_specific_files(self):
         """
         Handle files that are specific to a router, including vault certs and versioning.
@@ -26,10 +41,12 @@ class RouterSpecificFilesHandler:
             return
 
         if router_files_config.vault_certificates:
-            print("Handling vault certificates")  # Placeholder for future logic
+            self.handle_vault_certificates()
 
         # Compute and store the version hash
-        self.build_context.final_version = self.build_context.versions.compute_versions_hash()
+        self.build_context.final_version = (
+            self.build_context.versions.compute_versions_hash()
+        )
 
         version_file_path = router_temp_dir / "ptah_version"
         echo_to_file(version_file_path, self.build_context.final_version)

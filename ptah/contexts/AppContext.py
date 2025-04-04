@@ -1,5 +1,8 @@
 from typing import Dict
 from contexts import BuildContext
+from models import PortableMac
+
+
 class AppContext:
     def __init__(self):
-        self.context_dict: Dict[str, str] = {} 
+        self.build_contexts: Dict[PortableMac, BuildContext] = {}

@@ -31,4 +31,3 @@ class BuildContext:
         self.secrets = secrets
         self.versions = versions
         self.router_files = router_files
-

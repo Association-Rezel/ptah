@@ -11,7 +11,9 @@ class Versions:
         self.profile = profile
         self.versions = []
         self.versions.append(
-            hashlib.sha256(json.dumps(profile.model_dump_json()).encode("utf-8")).hexdigest()
+            hashlib.sha256(
+                json.dumps(profile.model_dump_json()).encode("utf-8")
+            ).hexdigest()
         )
         self.versions.append(profile.openwrt_profile.openwrt_version)
 
