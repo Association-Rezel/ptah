@@ -7,4 +7,3 @@ from models.PtahConfig import PtahConfig
 
 app = FastAPI(title="PTAH API")
 app.include_router(api_router)
-

@@ -15,11 +15,34 @@ class GitRepo(BaseModel):
     credentials: GitCredentialsReference
 
 
+class Local(BaseModel):
+    path: Path
+
+
+class Asset(BaseModel):
+    name: str
+    destination: Path
+
+
+class Source(BaseModel):
+    paths: List[Path]
+
+
+class GitlabReleaseCredentialsReference(BaseModel):
+    token: str
+
+
+class GitlabRelease(BaseModel):
+    release_url: HttpUrl
+    assets: Optional[List[Asset]]
+    source: Optional[Source]
+    credentials: GitlabReleaseCredentialsReference
+
+
 class FileEntry(BaseModel):
-    name: Optional[str]  # Optional label for the file entry
-    type: Literal["local", "git"]
-    path: str
-    git: Optional[GitRepo] = None
+    name: str
+    type: Literal["gitlab_release"]
+    gitlab_release: Optional[GitlabRelease]
 
 
 class VaultCertificates(BaseModel):
@@ -45,6 +68,28 @@ class OpenWrtProfile(BaseModel):
     arch: str
     openwrt_version: str
 
+    def get_imagebuilder_archive_name(self, openwrt_builder_file_ext) -> str:
+        archive_name = (
+            f"openwrt-imagebuilder-"
+            f"{self.openwrt_version}-"
+            f"{self.target}-"
+            f"{self.arch}"
+            f"{openwrt_builder_file_ext}"
+        )
+        return archive_name
+
+    def get_generated_binary_name(self, mac: str) -> str:
+        binary_name = (
+            f"openwrt-"
+            f"{self.openwrt_version}-"
+            f"ptah-{mac}-"
+            f"{self.target}-"
+            f"{self.arch}-"
+            f"{self.name}-"
+            f"squashfs-sysupgrade.bin"
+        )
+        return binary_name
+
 
 class PtahProfile(BaseModel):
     name: str
@@ -62,7 +107,10 @@ class GlobalSettings(BaseModel):
     openwrt_builder_file_ext: str
     git_repo_path: Path
     builders_path: Path
+    routers_files_path: Path
     output_path: Path
+    gitlab_releases_output_path: Path
+    router_temporary_path: Path
 
 
 class PtahConfig(BaseModel):
@@ -94,6 +142,8 @@ class PtahConfig(BaseModel):
 
         missing = used - declared
         if missing:
-            raise ValueError(f"These credentials are used but not declared: {', '.join(sorted(missing))}")
+            raise ValueError(
+                f"These credentials are used but not declared: {', '.join(sorted(missing))}"
+            )
 
         return self

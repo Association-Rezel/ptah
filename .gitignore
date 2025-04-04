@@ -6,3 +6,4 @@ ptah_config.yaml
 .env
 __pycache__
 tmp
+opt

@@ -1,7 +1,13 @@
 services:
   ptah:
-    image: ptah:latest
+    build: .
     ports:
       - "8000:8000"
     volumes:
       - ./ptah:/app:Z
+      - ./ptah_config.yaml:/opt/ptah_config.yaml:Z
+      - ./opt:/opt:Z
+    environment:
+      PTAH_SECRETS_SOURCE: environ
+    env_file:
+      - .env
