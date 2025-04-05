@@ -8,3 +8,4 @@ zstandard
 fastapi
 netaddr
 uvicorn
+pyjwt

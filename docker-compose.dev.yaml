@@ -12,3 +12,4 @@ services:
       PTAH_SECRETS_SOURCE: environ
     env_file:
       - .env
+    network_mode: host

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel
 
 
@@ -12,12 +12,20 @@ class CertificateData(BaseModel):
     serial_number: str
 
 
+class PtahSecretsData(BaseModel):
+    jwt_secret_1: str
+
+class KvData(BaseModel):
+    data: Union[PtahSecretsData]
+    metadata: dict
+
+
 class VaultResponse(BaseModel):
     request_id: str
     lease_id: str
     renewable: bool
     lease_duration: int
-    data: CertificateData
+    data: Union[CertificateData, KvData]
     wrap_info: Optional[dict]
     warnings: Optional[List[str]]
     auth: Optional[dict]

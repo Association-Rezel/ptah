@@ -12,4 +12,4 @@ from .Versions import Versions
 from .RouterFilesOrganizer import RouterFilesOrganizer
 from .PortableMac import PortableMac
 from .PathTransferHandler import PathTransferHandler
-from .VaultResponse import VaultResponse
+from .VaultResponses import VaultResponse, CertificateData, PtahSecretsData

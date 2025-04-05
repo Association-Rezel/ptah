@@ -63,7 +63,7 @@ class FileEntry(BaseModel):
 
 
 class VaultCredentialsReference(BaseModel):
-    token: str
+    vault_token: str
 
 
 class VaultCertificates(BaseModel):
@@ -75,10 +75,19 @@ class VaultCertificates(BaseModel):
     credentials: VaultCredentialsReference
 
 
+class JwtFromVaultSecrets(BaseModel):
+    destination: str
+    vault_server: HttpUrl
+    kv_mount: str
+    kv_path: str
+    credentials: VaultCredentialsReference
+
+
 class SpecificFileEntry(BaseModel):
     name: str
-    type: Literal["vault_certificates"]
+    type: Literal["vault_certificates", "jwt_from_vault_secrets"]
     vault_certificates: Optional[VaultCertificates] = None
+    jwt_from_vault_secrets: Optional[JwtFromVaultSecrets] = None
 
 
 class Files(BaseModel):
