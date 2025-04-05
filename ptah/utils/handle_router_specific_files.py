@@ -12,7 +12,9 @@ class RouterSpecificFilesHandler:
     def __init__(self, build_context: BuildContext):
         self.build_context = build_context
 
-    def handle_vault_certificates(self, file_entry: SpecificFileEntry, temporary_dir: Path):
+    def handle_vault_certificates(
+        self, file_entry: SpecificFileEntry, temporary_dir: Path
+    ):
         """
         Handle vault certificates for the router.
         """
@@ -40,7 +42,7 @@ class RouterSpecificFilesHandler:
             raise ValueError(
                 f"Failed to retrieve certificate from Vault: {request.text}"
             )
-        
+
         # Parsung vault response
         vault_response = VaultResponse.model_validate_json(request.text)
         cert_data = vault_response.data.certificate
@@ -57,7 +59,7 @@ class RouterSpecificFilesHandler:
         # Writing certificates to temp dir
         for filename, content in cert_files:
             temp_path = temporary_dir / filename
-            with open(temp_path, "w", encoding='utf-8') as f:
+            with open(temp_path, "w", encoding="utf-8") as f:
                 f.write(content)
 
             destination_path = Path(vault_certificates.destination) / filename
@@ -65,7 +67,6 @@ class RouterSpecificFilesHandler:
             self.build_context.router_files.file_transfer_entries.append(
                 PathTransferHandler(source=temp_path, dest=destination_path)
             )
-
 
     def handle_router_specific_files(self):
         """

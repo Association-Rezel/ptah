@@ -8,6 +8,7 @@ from ptah.models import PortableMac
 from ptah.models import PathTransferHandler
 from ptah.utils.utils import recreate_dir
 
+
 def process_ptah_permissions_on_folder(
     source_path: Path,
     destination_path: Path,
@@ -15,10 +16,12 @@ def process_ptah_permissions_on_folder(
     permission_file = source_path / ".ptah_permissions"
     if not permission_file.exists():
         return
-    with open(permission_file, "r", encoding='utf-8') as f:
+    with open(permission_file, "r", encoding="utf-8") as f:
         permissions = f.readlines()
-    
-    permission_regex = r"^\s*(?!#)(?P<octal>[0-7]{3})\s+(?P<path>(?!/|\./|\.\./)[^\s#]+)$"
+
+    permission_regex = (
+        r"^\s*(?!#)(?P<octal>[0-7]{3})\s+(?P<path>(?!/|\./|\.\./)[^\s#]+)$"
+    )
     for line in permissions:
         match = re.match(permission_regex, line)
         if match:
@@ -26,6 +29,7 @@ def process_ptah_permissions_on_folder(
             path = match.group("path")
             destination_file = destination_path / str(path)
             destination_file.chmod(int(octal, 8))
+
 
 class RouterFilesOrganizer:
     mac: PortableMac
@@ -46,7 +50,6 @@ class RouterFilesOrganizer:
             self.global_settings.routers_files_path / self.mac.to_filename_compliant()
         )
         recreate_dir(router_directory)
-
 
         for file_handler in self.file_transfer_entries:
             source_path = file_handler.source
