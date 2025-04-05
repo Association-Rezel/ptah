@@ -45,6 +45,15 @@ ptah_profiles:
             cn_suffix: .box.example.com
             credentials:
               token: VAULT_TOKEN_1
+        - nam e: jwt_from_vault_secrets
+          type: jwt_from_vault_secrets
+          jwt_from_vault_secrets:
+            destination: /etc
+            vault_server: https://vault.hashicorp.com
+            kv_mount: kv
+            kv_path: ptah
+            credentials:
+              vault_token: VAULT_TOKEN_1
         
 credentials:
   GIT_USER_1:
