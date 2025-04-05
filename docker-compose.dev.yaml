@@ -2,11 +2,12 @@ services:
   ptah:
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./:/app:Z
       - ./ptah_config.yaml:/opt/ptah_config.yaml:Z
       - ./opt:/opt:Z
+    command: --reload --port 8001
     environment:
       PTAH_SECRETS_SOURCE: environ
     env_file:
