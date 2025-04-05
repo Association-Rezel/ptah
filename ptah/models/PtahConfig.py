@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import List, Optional, Literal, Dict, Set
-from pydantic import BaseModel, HttpUrl, model_validator, root_validator
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 
 
 # Git credentials referenced from env vars
@@ -22,6 +22,23 @@ class Local(BaseModel):
 class Asset(BaseModel):
     name: str
     destination: Path
+    permission: str
+
+    @field_validator("permission", mode="before")
+    @classmethod
+    def validate_permission(cls, v: str) -> str:
+        if isinstance(v, int):
+            v = str(v)
+        if not v.isdigit() or len(v) not in {3, 4}:
+            raise ValueError("Permission must be a 3 or 4 digit octal string")
+        try:
+            int(v, 8)
+        except ValueError:
+            raise ValueError("Permission must be a valid octal number")
+        return v
+
+    def permission_as_int(self) -> int:
+        return int(self.permission, 8)
 
 
 class Source(BaseModel):
@@ -34,15 +51,15 @@ class GitlabReleaseCredentialsReference(BaseModel):
 
 class GitlabRelease(BaseModel):
     release_url: HttpUrl
-    assets: Optional[List[Asset]]
-    source: Optional[Source]
+    assets: Optional[List[Asset]] = None
+    source: Optional[Source] = None
     credentials: GitlabReleaseCredentialsReference
 
 
 class FileEntry(BaseModel):
     name: str
     type: Literal["gitlab_release"]
-    gitlab_release: Optional[GitlabRelease]
+    gitlab_release: Optional[GitlabRelease] = None
 
 class VaultCredentialsReference(BaseModel):
     token: str
@@ -58,7 +75,7 @@ class VaultCertificates(BaseModel):
 class SpecificFileEntry(BaseModel):
     name: str
     type: Literal["vault_certificates"]
-    vault_certificates: Optional[VaultCertificates]
+    vault_certificates: Optional[VaultCertificates] = None
 
 class Files(BaseModel):
     profile_shared_files: List[FileEntry]
@@ -97,7 +114,7 @@ class OpenWrtProfile(BaseModel):
 class PtahProfile(BaseModel):
     name: str
     openwrt_profile: OpenWrtProfile
-    packages: Optional[List[str]]
+    packages: Optional[List[str]] = None
     files: Files
 
 

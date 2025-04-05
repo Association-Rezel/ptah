@@ -34,7 +34,6 @@ class RouterSpecificFilesHandler:
                 "common_name": cert_cn,
                 "format": "pem",
             },
-            verify=False,
         )
         if request.status_code != 200:
             raise ValueError(

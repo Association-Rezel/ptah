@@ -124,6 +124,7 @@ class SharedFilesHandler:
                     PathTransferHandler(
                         source=release_output_dir / asset.name,
                         dest=asset.destination,
+                        permission=asset.permission if asset.permission else "644",
                     )
                 )
 
