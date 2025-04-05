@@ -6,6 +6,7 @@ from .PtahConfig import (
     GitlabRelease,
     SpecificFileEntry,
     VaultCertificates,
+    Credential,
 )
 from .Versions import Versions
 from .RouterFilesOrganizer import RouterFilesOrganizer

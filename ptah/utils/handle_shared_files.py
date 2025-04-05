@@ -1,18 +1,17 @@
 from pathlib import Path
-from typing import List
 
 import requests
 import re
 import zipfile
 
 from pydantic import HttpUrl
-from models import FileEntry, GitlabRelease, PathTransferHandler
-from contexts import BuildContext
+from ptah.models import FileEntry, GitlabRelease, PathTransferHandler
+from ptah.contexts import BuildContext
 
 
 def fetch_gitlab_api(url: HttpUrl, token: str) -> requests.Response:
     """Send GET request to GitLab API with token."""
-    return requests.get(url, headers={"PRIVATE-TOKEN": token})
+    return requests.get(url, headers={"PRIVATE-TOKEN": token}, timeout=40)
 
 
 def get_gitlab_release_info(release_url: HttpUrl, token: str) -> dict:
@@ -29,7 +28,7 @@ def download_asset_file(asset_url: HttpUrl, download_dir: Path, token: str) -> s
     Returns the downloaded filename.
     """
     headers = {"Authorization": f"Bearer {token}"}
-    with requests.get(asset_url, headers=headers, stream=True) as response:
+    with requests.get(asset_url, headers=headers, stream=True, timeout=40) as response:
         if response.status_code != 200:
             raise ValueError(f"Failed to download asset: {response.status_code}")
 

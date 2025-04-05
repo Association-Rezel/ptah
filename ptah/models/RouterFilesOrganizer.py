@@ -3,12 +3,10 @@ from pathlib import Path
 import re
 from shutil import copy2
 
-from pydantic import BaseModel
-
-from models import GlobalSettings
-from models import PortableMac
-from models import PathTransferHandler
-from utils.utils import recreate_dir
+from ptah.models import GlobalSettings
+from ptah.models import PortableMac
+from ptah.models import PathTransferHandler
+from ptah.utils.utils import recreate_dir
 
 def process_ptah_permissions_on_folder(
     source_path: Path,
@@ -17,7 +15,7 @@ def process_ptah_permissions_on_folder(
     permission_file = source_path / ".ptah_permissions"
     if not permission_file.exists():
         return
-    with open(permission_file, "r") as f:
+    with open(permission_file, "r", encoding='utf-8') as f:
         permissions = f.readlines()
     
     permission_regex = r"^\s*(?!#)(?P<octal>[0-7]{3})\s+(?P<path>(?!/|\./|\.\./)[^\s#]+)$"
@@ -64,7 +62,6 @@ class RouterFilesOrganizer:
                 continue
 
             # If it's a directory, recursively copy its contents
-            destination_directory = router_directory / file_handler.dest
             for root, _, files in os.walk(source_path):
                 root_directory_path = Path(root)
                 relative_path = root_directory_path.relative_to(source_path)

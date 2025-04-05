@@ -1,6 +1,6 @@
 import hashlib
 import json
-from models.PtahConfig import PtahProfile
+from ptah.models.PtahConfig import PtahProfile
 
 
 class Versions:
@@ -22,7 +22,7 @@ class Versions:
         Compute the hash of the versions list.
         """
         print(self.versions)
-        hash = hashlib.sha256()
+        _hash = hashlib.sha256()
         for version in self.versions:
-            hash.update(version.encode("utf-8"))
-        return hash.hexdigest()
+            _hash.update(version.encode("utf-8"))
+        return _hash.hexdigest()

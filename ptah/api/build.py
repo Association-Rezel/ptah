@@ -3,17 +3,17 @@ import subprocess
 from typing import cast
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
-from models.build import BuildPrepareRequest
-from models import PtahConfig, PtahProfile
-from contexts import BuildContext, AppContext
-from models import RouterFilesOrganizer
-from models import PortableMac
-from models import Versions
-from utils.handle_router_specific_files import RouterSpecificFilesHandler
-from utils.handle_shared_files import SharedFilesHandler
-from utils.utils import recreate_dir
-from .dependencies import get_config, read_secrets
-from shutil import move
+
+from ptah.models.build import BuildPrepareRequest
+from ptah.models import PtahConfig, PtahProfile
+from ptah.contexts import BuildContext, AppContext
+from ptah.models import RouterFilesOrganizer
+from ptah.models import PortableMac
+from ptah.models import Versions
+from ptah.utils.handle_router_specific_files import RouterSpecificFilesHandler
+from ptah.utils.handle_shared_files import SharedFilesHandler
+from ptah.utils.utils import recreate_dir
+from ptah.api.dependencies import get_config, read_secrets
 
 router = APIRouter()
 
@@ -36,7 +36,7 @@ def run_make_build(profile: PtahProfile, config: PtahConfig, mac: str) -> bool:
         f'FILES="{config.global_settings.routers_files_path / mac }" '
     )
     profile = config.global_settings.builders_path / profile.name
-    with open(profile / "builder_folder") as f:
+    with open(profile / "builder_folder", encoding="utf-8") as f:
         builder_name = f.readline().strip("\n")
     builder_path = config.global_settings.builders_path / profile.name / builder_name
 
@@ -44,12 +44,11 @@ def run_make_build(profile: PtahProfile, config: PtahConfig, mac: str) -> bool:
 
     try:
         subprocess.run(make_image_cmd, shell=True, check=True, cwd=builder_path)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Build failed.",
-        )
-        return False
+            detail="Build failed.",
+        ) from exc
     return True
 
 
@@ -146,7 +145,7 @@ def download_build_endpoint(
     if not binary_path.exists():
         return HTTPException(
             status_code=500,
-            detail=f"Build failed.",
+            detail="Build failed.",
         )
 
     if not binary_path.exists():

@@ -1,7 +1,6 @@
 import re
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
-from typing import Annotated
 
 
 def normalize_mac(mac: str) -> str:

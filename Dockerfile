@@ -8,7 +8,7 @@ gettext libssl-dev xsltproc rsync wget unzip python3 python3-setuptools
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
-COPY ./ptah /app
+COPY . /app
 WORKDIR /app
 
 COPY ./entrypoint.sh /entrypoint.sh

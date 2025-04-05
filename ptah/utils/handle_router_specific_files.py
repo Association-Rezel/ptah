@@ -2,10 +2,10 @@ from pathlib import Path
 
 import requests
 
-from contexts import BuildContext
-from models import PathTransferHandler, SpecificFileEntry
-from models import VaultResponse
-from utils.utils import echo_to_file, recreate_dir
+from ptah.contexts import BuildContext
+from ptah.models import PathTransferHandler, SpecificFileEntry
+from ptah.models import VaultResponse
+from ptah.utils.utils import echo_to_file, recreate_dir
 
 
 class RouterSpecificFilesHandler:
@@ -34,6 +34,7 @@ class RouterSpecificFilesHandler:
                 "common_name": cert_cn,
                 "format": "pem",
             },
+            timeout=10,
         )
         if request.status_code != 200:
             raise ValueError(
@@ -56,7 +57,7 @@ class RouterSpecificFilesHandler:
         # Writing certificates to temp dir
         for filename, content in cert_files:
             temp_path = temporary_dir / filename
-            with open(temp_path, "w") as f:
+            with open(temp_path, "w", encoding='utf-8') as f:
                 f.write(content)
 
             destination_path = Path(vault_certificates.destination) / filename

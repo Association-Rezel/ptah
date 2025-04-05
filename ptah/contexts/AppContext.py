@@ -1,6 +1,6 @@
 from typing import Dict
-from contexts import BuildContext
-from models import PortableMac
+from ptah.contexts import BuildContext
+from ptah.models import PortableMac
 
 
 class AppContext:

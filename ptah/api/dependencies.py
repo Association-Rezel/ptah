@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import Request, Depends
-import yaml
-from models.PtahConfig import PtahConfig
-from utils.utils import load_ptah_config
+from fastapi import Depends
+from ptah.models.PtahConfig import PtahConfig
+from ptah.utils.utils import load_ptah_config
 
 
 def get_config() -> PtahConfig:

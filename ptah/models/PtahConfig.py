@@ -33,8 +33,8 @@ class Asset(BaseModel):
             raise ValueError("Permission must be a 3 or 4 digit octal string")
         try:
             int(v, 8)
-        except ValueError:
-            raise ValueError("Permission must be a valid octal number")
+        except ValueError as exc:
+            raise ValueError("Permission must be a valid octal number") from exc
         return v
 
     def permission_as_int(self) -> int:

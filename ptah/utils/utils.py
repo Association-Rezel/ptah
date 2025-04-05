@@ -1,21 +1,26 @@
 import os
+from typing import Optional, Dict
 import git
 from pathlib import Path
 from shutil import rmtree
 
+from pydantic import HttpUrl
 import yaml
-from models.PtahConfig import *
-import requests
 import zstandard as zstd
 import io
 import tarfile
+
+from ptah.models import PtahConfig, FileEntry, Credential
+
+
+
 
 
 def load_ptah_config(config_path: Path) -> PtahConfig:
     if not config_path.is_file():
         raise FileNotFoundError(f"Configuration file {config_path} does not exist")
 
-    with open(config_path, "r") as file:
+    with open(config_path, "r",encoding='utf-8') as file:
         config_data = yaml.safe_load(file)
     return PtahConfig.model_validate(config_data)
 
@@ -54,7 +59,7 @@ def recreate_dir(path: Path):
 
 
 def echo_to_file(file: Path, content: str):
-    with open(file, "w") as f:
+    with open(file, "w", encoding='utf-8') as f:
         f.write(content)
 
 

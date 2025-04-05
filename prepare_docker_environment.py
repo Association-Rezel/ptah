@@ -1,9 +1,8 @@
 import argparse
-import yaml
 from pathlib import Path
 from shutil import rmtree
-from models.PtahConfig import *
-from utils.utils import (
+from ptah.models.PtahConfig import PtahConfig, PtahProfile
+from ptah.utils.utils import (
     extract_tar_zst,
     load_ptah_config,
     recreate_dir,
@@ -52,7 +51,7 @@ class PrepareDockerEnvironment:
         archive_name = f"openwrt-imagebuilder-{openwrt_version}-{target}-{arch}{self.OPENWRT_BUILDER_FILE_EXT}"
         image_builder_url = f"{target_url}/{archive_name}"
 
-        response = requests.get(image_builder_url, stream=True)
+        response = requests.get(image_builder_url, stream=True, timeout=40)
         response.raise_for_status()
 
         archive_path = tmp_path / archive_name

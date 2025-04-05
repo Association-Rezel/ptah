@@ -1,10 +1,7 @@
-from pathlib import Path
-from models.PtahConfig import GlobalSettings, PtahProfile
-from hashlib import sha256
-
-from models import RouterFilesOrganizer
-from models import PortableMac
-from models import Versions
+from ptah.models.PtahConfig import GlobalSettings, PtahProfile
+from ptah.models import RouterFilesOrganizer
+from ptah.models import PortableMac
+from ptah.models import Versions
 
 
 class BuildContext:
