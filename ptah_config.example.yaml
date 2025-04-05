@@ -11,31 +11,52 @@ ptah_profiles:
       - 'libcurl'
     files:
       profile_shared_files:
-        - name: go_daemon
-          type: git
-          path: router_files
-          git:
-            url: https://github.com/association-rezel/go_daemon.git
-            type: http
+        - name: ptah_files
+          type: gitlab_release
+          gitlab_release:
+            release_url: https://gitlab.com/api/v4/projects/499/releases/permalink/latest
+            source:
+              paths:
+                - shared_files
+                - ac2350
             credentials:
-              username_environ: GIT_USER_1
-              password_environ: GIT_TOKEN_1
+              token: GIT_TOKEN_1
+        - name: go_daemon
+          type: gitlab_release
+          gitlab_release:
+            release_url: https://gitlab.com/api/v4/projects/500/releases/permalink/latest
+            assets:
+              - name: hermes_daemon-linux-mips
+                destination: /hermes_daemon
+                permission: "774"
+            source:
+              paths:
+                - ptah_files
+            credentials:
+              token: GIT_TOKEN_1
       router_specific_files:
-        vault_certificates:
-          destination: /etc/ssl/certs
-          vault_server: https://vault.hashicorp.com
-          pki_mount: pki
-          pki_role: openwrt
-          pki_ttl: 5y
-
+        - name: vault_ssl_mac
+          type: vault_certificates
+          vault_certificates:
+            destination: /etc/ssl/certs
+            vault_server: https://vault.hashicorp.com
+            pki_mount: core-dev
+            pki_role: pki
+            cn_suffix: .box.example.com
+            credentials:
+              token: VAULT_TOKEN_1
+        
 credentials:
   GIT_USER_1:
   GIT_TOKEN_1:
+  VAULT_TOKEN_1:
 
 global_settings:
   openwrt_base_releases_url: https://downloads.openwrt.org/releases
   openwrt_builder_file_ext: .Linux-x86_64.tar.zst
   git_repo_path: /opt/git
+  routers_files_path: /opt/routers_files
   builders_path: /opt/builders
   output_path: /opt/output
-
+  gitlab_releases_output_path: /opt/gitlab_releases
+  router_temporary_path: /opt/temporary
