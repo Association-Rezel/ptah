@@ -146,21 +146,9 @@ class Credential(BaseModel):
     source: Optional[Literal["environ"]] = "environ"
 
 
-class GlobalSettings(BaseModel):
-    openwrt_base_releases_url: HttpUrl
-    openwrt_builder_file_ext: str
-    git_repo_path: Path
-    builders_path: Path
-    routers_files_path: Path
-    output_path: Path
-    gitlab_releases_output_path: Path
-    router_temporary_path: Path
-
-
 class PtahConfig(BaseModel):
     ptah_profiles: List[PtahProfile]
     credentials: Optional[Dict[str, Optional[Credential]]] = None
-    global_settings: GlobalSettings
 
     @model_validator(mode="before")
     @classmethod

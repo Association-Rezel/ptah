@@ -5,6 +5,7 @@ import re
 import zipfile
 
 from pydantic import HttpUrl
+from ptah.env import ENV
 from ptah.models import FileEntry, GitlabRelease, PathTransferHandler
 from ptah.contexts import BuildContext
 
@@ -99,7 +100,7 @@ class SharedFilesHandler:
         self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")
 
         release_output_dir = (
-            Path(self.build_context.global_settings.gitlab_releases_output_path)
+            Path(ENV.gitlab_releases_output_path)
             / file_entry.name
             / release_tag
         )

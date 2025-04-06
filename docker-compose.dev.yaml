@@ -8,8 +8,8 @@ services:
       - ./ptah_config.yaml:/opt/ptah_config.yaml:Z
       - ./opt:/opt:Z
     command: --reload --port 8001
-    environment:
-      PTAH_SECRETS_SOURCE: environ
     env_file:
-      - .env
+      - .env.dev
+      - .env.local
+
     network_mode: host

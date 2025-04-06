@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from shutil import rmtree
+from ptah.env import ENV
 from ptah.models.PtahConfig import PtahConfig, PtahProfile
 from ptah.utils.utils import (
     extract_tar_zst,
@@ -12,32 +13,11 @@ import requests
 
 
 class PrepareDockerEnvironment:
-    BUILDERS_PATH: Path
-    GIT_REPO_PATH: Path
-    OUTPUT_PATH: Path
-    OPENWRT_BASE_RELEASES_URL: str
-    OPENWRT_BUILDER_FILE_EXT: str
-    SECRETS: dict
-
     ptah_config: PtahConfig
 
     def __init__(self, config: str):
         config_path = Path(config)
         self.ptah_config = load_ptah_config(config_path)
-
-        self.BUILDERS_PATH = self.ptah_config.global_settings.builders_path
-        self.GIT_REPO_PATH = self.ptah_config.global_settings.git_repo_path
-        self.OUTPUT_PATH = self.ptah_config.global_settings.output_path
-        self.GITLAB_RELEASES_OUTPUT_PATH = (
-            self.ptah_config.global_settings.gitlab_releases_output_path
-        )
-        self.ROUTER_FILES_PATH = self.ptah_config.global_settings.routers_files_path
-        self.OPENWRT_BASE_RELEASES_URL = (
-            self.ptah_config.global_settings.openwrt_base_releases_url
-        )
-        self.OPENWRT_BUILDER_FILE_EXT = (
-            self.ptah_config.global_settings.openwrt_builder_file_ext
-        )
 
     # ------------------------------- Helper Functions ------------------------------ #
 
@@ -47,8 +27,8 @@ class PrepareDockerEnvironment:
         openwrt_version = profile.openwrt_profile.openwrt_version
         target = profile.openwrt_profile.target
         arch = profile.openwrt_profile.arch
-        target_url = f"{self.OPENWRT_BASE_RELEASES_URL}/{openwrt_version}/targets/{target}/{arch}"
-        archive_name = f"openwrt-imagebuilder-{openwrt_version}-{target}-{arch}{self.OPENWRT_BUILDER_FILE_EXT}"
+        target_url = f"{ENV.openwrt_base_releases_url}/{openwrt_version}/targets/{target}/{arch}"
+        archive_name = f"openwrt-imagebuilder-{openwrt_version}-{target}-{arch}{ENV.openwrt_builder_file_ext}"
         image_builder_url = f"{target_url}/{archive_name}"
 
         response = requests.get(image_builder_url, stream=True, timeout=40)
@@ -69,16 +49,16 @@ class PrepareDockerEnvironment:
     # ---------------------------------- Main Logic --------------------------------- #
     def main(self):
         for path in [
-            self.GIT_REPO_PATH,
-            self.BUILDERS_PATH,
-            self.OUTPUT_PATH,
-            self.GITLAB_RELEASES_OUTPUT_PATH,
-            self.ROUTER_FILES_PATH,
+            ENV.git_repo_path,
+            ENV.builders_path,
+            ENV.output_path,
+            ENV.gitlab_releases_output_path,
+            ENV.routers_files_path,
         ]:
             recreate_dir(path)
 
         for profile in self.ptah_config.ptah_profiles:
-            profile_path = self.BUILDERS_PATH / profile.name
+            profile_path = ENV.builders_path / profile.name
             tmp_path = profile_path / "tmp"
             for path in [profile_path, tmp_path]:
                 recreate_dir(path)

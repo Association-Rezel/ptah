@@ -59,13 +59,3 @@ credentials:
   GIT_USER_1:
   GIT_TOKEN_1:
   VAULT_TOKEN_1:
-
-global_settings:
-  openwrt_base_releases_url: https://downloads.openwrt.org/releases
-  openwrt_builder_file_ext: .Linux-x86_64.tar.zst
-  git_repo_path: /opt/git
-  routers_files_path: /opt/routers_files
-  builders_path: /opt/builders
-  output_path: /opt/output
-  gitlab_releases_output_path: /opt/gitlab_releases
-  router_temporary_path: /opt/temporary

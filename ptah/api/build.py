@@ -14,6 +14,7 @@ from ptah.utils.handle_router_specific_files import RouterSpecificFilesHandler
 from ptah.utils.handle_shared_files import SharedFilesHandler
 from ptah.utils.utils import recreate_dir
 from ptah.api.dependencies import get_config, read_secrets
+from ptah.env import ENV
 
 router = APIRouter()
 
@@ -25,22 +26,22 @@ def check_profile_exists(profile: str, config: PtahConfig) -> PtahProfile:
     return None
 
 
-def run_make_build(profile: PtahProfile, config: PtahConfig, mac: str) -> bool:
+def run_make_build(profile: PtahProfile, mac: str) -> bool:
     packages = " ".join(profile.packages) if profile.packages else ""
     make_image_cmd = (
         f"make image "
         f'PROFILE="{profile.openwrt_profile.name}" '
         f'PACKAGES="{packages}" '
         f'EXTRA_IMAGE_NAME="ptah-{mac}" '
-        f'BIN_DIR="{config.global_settings.output_path / mac}" '
-        f'FILES="{config.global_settings.routers_files_path / mac }" '
+        f'BIN_DIR="{ENV.output_path / mac}" '
+        f'FILES="{ENV.routers_files_path / mac }" '
     )
-    profile = config.global_settings.builders_path / profile.name
+    profile = ENV.builders_path / profile.name
     with open(profile / "builder_folder", encoding="utf-8") as f:
         builder_name = f.readline().strip("\n")
-    builder_path = config.global_settings.builders_path / profile.name / builder_name
+    builder_path = ENV.builders_path / profile.name / builder_name
 
-    recreate_dir(config.global_settings.output_path / mac)
+    recreate_dir(ENV.output_path / mac)
 
     try:
         subprocess.run(make_image_cmd, shell=True, check=True, cwd=builder_path)
@@ -77,20 +78,18 @@ def build_endpoint(
 
     router_files = RouterFilesOrganizer(
         mac=mac,
-        global_settings=config.global_settings,
     )
 
     build_context = BuildContext(
         mac=mac,
         profile=ptah_profile,
-        global_settings=config.global_settings,
         secrets=secrets,
         versions=Versions(ptah_profile),
         router_files=router_files,
     )
     build_contexts[mac] = build_context
 
-    files_dest_path = Path(config.global_settings.routers_files_path / mac_fc)
+    files_dest_path = Path(ENV.routers_files_path / mac_fc)
     recreate_dir(files_dest_path)
     sfh = SharedFilesHandler(build_context)
 
@@ -115,7 +114,6 @@ def build_endpoint(
 def download_build_endpoint(
     request: Request,
     mac: PortableMac,
-    config: PtahConfig = Depends(get_config),
 ):
     ctx = cast(AppContext, request.app.state.ctx)
     if not ctx:
@@ -133,14 +131,13 @@ def download_build_endpoint(
 
     run_make_build(
         build_context.profile,
-        config,
         mac_fc,
     )
 
     binary_name = build_context.profile.openwrt_profile.get_generated_binary_name(
         mac_fc
     )
-    binary_path = config.global_settings.output_path / mac_fc / binary_name
+    binary_path = ENV.output_path / mac_fc / binary_name
 
     if not binary_path.exists():
         return HTTPException(

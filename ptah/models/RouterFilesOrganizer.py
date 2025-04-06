@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 from shutil import copy2
 
-from ptah.models import GlobalSettings
+from ptah.env import ENV
 from ptah.models import PortableMac
 from ptah.models import PathTransferHandler
 from ptah.utils.utils import recreate_dir
@@ -33,12 +33,10 @@ def process_ptah_permissions_on_folder(
 
 class RouterFilesOrganizer:
     mac: PortableMac
-    global_settings: GlobalSettings
     file_transfer_entries: list[PathTransferHandler]
 
-    def __init__(self, mac: PortableMac, global_settings: GlobalSettings):
+    def __init__(self, mac: PortableMac):
         self.mac = mac
-        self.global_settings = global_settings
         self.file_transfer_entries = []
 
     # This method organizes and copies the router files:
@@ -47,7 +45,7 @@ class RouterFilesOrganizer:
     # - If a file is a regular file, it copies it.
     def merge_files_to_router_files(self):
         router_directory = (
-            self.global_settings.routers_files_path / self.mac.to_filename_compliant()
+            ENV.routers_files_path / self.mac.to_filename_compliant()
         )
         recreate_dir(router_directory)
 

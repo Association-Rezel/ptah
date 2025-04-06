@@ -5,6 +5,7 @@ import jwt
 import requests
 
 from ptah.contexts import BuildContext
+from ptah.env import ENV
 from ptah.models import PathTransferHandler, SpecificFileEntry
 from ptah.models import VaultResponse
 from ptah.models.VaultResponses import CertificateData, PtahSecretsData
@@ -168,7 +169,7 @@ class RouterSpecificFilesHandler:
         Handle files that are specific to a router, including vault certs and versioning.
         """
         router_temp_dir = (
-            self.build_context.global_settings.router_temporary_path
+            ENV.router_temporary_path
             / self.build_context.mac.to_filename_compliant()
         )
 
