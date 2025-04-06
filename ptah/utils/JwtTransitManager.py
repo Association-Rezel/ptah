@@ -6,7 +6,6 @@ the signing part is handled by the transit secret engine of Vault)
 """
 
 import base64
-from ast import literal_eval
 import json
 from pydantic import HttpUrl
 import requests
@@ -17,6 +16,7 @@ class JwtTransitManager:
 
     ALG: str = "RS256"
     SIGN_ALG: str = "pkcs1v15"
+    VAULT_SIGNATURE_PREFIX = "vault:v1:"
 
     def __init__(
         self,
@@ -33,7 +33,7 @@ class JwtTransitManager:
         self.headers = {
             "X-Vault-Token": vault_token,
         }
-        self.default_timeout = 9999999
+        self.default_timeout = 40
 
         # headers for the JWT tokens
         self.jwt_headers = {"alg": self.ALG, "typ": "JWT"}
@@ -54,7 +54,11 @@ class JwtTransitManager:
             ValueError: If the request to sign the token fails.
 
         """
-        base64_payload = self.encode_part(payload)
+        try:
+            base64_payload = self.encode_part(payload)
+        except Exception as e:
+            raise ValueError(f"Failed to encode payload: {e}")
+
         jwt_input = self.base64_jwt_headers + "." + base64_payload
         base64_input = self.str_to_base64(jwt_input)
 
@@ -70,15 +74,11 @@ class JwtTransitManager:
             },
             timeout=self.default_timeout,
         )
+        response.raise_for_status()
 
-        if response.status_code == 200:
-            signature: str = response.json()["data"]["signature"]
-        else:
-            raise ValueError(
-                f"Failed to sign token. Status code: {response.status_code}\
-                            response: {response.json()}"
-            )
-        raw_sig = signature.replace("vault:v1:", "")
+        signature: str = response.json()["data"]["signature"]
+
+        raw_sig = signature.replace(self.VAULT_SIGNATURE_PREFIX, "")
         jwt_signature = self.base64_to_base64url(raw_sig)
         return f"{jwt_input}.{jwt_signature}"
 
@@ -95,10 +95,10 @@ class JwtTransitManager:
         * ConnectionError : raised if Vault is unreachable
         * ValueError : if the request failed for another reason
         """
-        try:
-            header, payload, signature = jwt.split(".")
-        except ValueError:
-            return False
+        parts = jwt.split(".")
+        if len(parts) != 3:
+            raise ValueError("JWT must have 3 parts (header.payload.signature)")
+        header, payload, signature = parts
 
         # check if the header is valid
         base64_input = self.str_to_base64(f"{header}.{payload}")
@@ -111,22 +111,14 @@ class JwtTransitManager:
             headers=self.headers,
             data={
                 "input": base64_input,
-                "signature": "vault:v1:" + base64_signature,
+                "signature": f"{self.VAULT_SIGNATURE_PREFIX}{base64_signature}",
                 "prehashed": False,
                 "signature_algorithm": self.SIGN_ALG,
             },
             timeout=self.default_timeout,
         )
-
-        # check response status
-        if response.status_code == 200:
-            return bool(response.json()["data"]["valid"])
-        else:
-            raise ValueError(
-                f"Request to verify token failed. "
-                f"Status code: {response.status_code} "
-                f"Content: {response.json()}"
-            )
+        response.raise_for_status()
+        return bool(response.json()["data"]["valid"])
 
     def decode_jwt(self, jwt: str) -> dict:
         """Return the payload as a dict."""
