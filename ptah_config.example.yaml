@@ -45,13 +45,22 @@ ptah_profiles:
             cn_suffix: .box.example.com
             credentials:
               token: VAULT_TOKEN_1
-        - nam e: jwt_from_vault_secrets
+        - name: jwt_from_vault_secrets
           type: jwt_from_vault_secrets
           jwt_from_vault_secrets:
             destination: /etc
             vault_server: https://vault.hashicorp.com
             kv_mount: kv
             kv_path: ptah
+            credentials:
+              vault_token: VAULT_TOKEN_1
+        - name: mac_jwt
+          type: jwt_from_vault_transit
+          jwt_from_vault_transit:
+            destination: /etc
+            vault_server: https://vault.hashicorp.com
+            transit_mount: transit
+            transit_key: ptah-jwt
             credentials:
               vault_token: VAULT_TOKEN_1
         
