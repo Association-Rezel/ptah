@@ -13,13 +13,14 @@ def get_config() -> PtahConfig:
 
 def read_secrets(config: PtahConfig = Depends(get_config)) -> dict:
     secrets = {}
-    ptah_secrets_source = os.getenv("PTAH_SECRETS_SOURCE")
-    if os.getenv("PTAH_SECRETS_SOURCE") == "k8s":
-        load_dotenv("/vault/secrets/.env")
-    elif ptah_secrets_source == "environ":
-        pass
+
     for credential in config.credentials.keys():
         secrets[credential] = os.getenv(credential)
+        if secrets[credential] is None:
+            raise RuntimeError(
+                f"Environment variable '{credential}' not found. "
+                "Please set it in your environment."
+            )
     if secrets == {}:
         raise RuntimeError("No secrets found in environment variables.")
     return secrets

@@ -1,6 +1,5 @@
 from .PtahConfig import (
     PtahConfig,
-    GlobalSettings,
     PtahProfile,
     FileEntry,
     GitlabRelease,
