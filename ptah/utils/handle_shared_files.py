@@ -100,9 +100,7 @@ class SharedFilesHandler:
         self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")
 
         release_output_dir = (
-            Path(ENV.gitlab_releases_output_path)
-            / file_entry.name
-            / release_tag
+            Path(ENV.gitlab_releases_output_path) / file_entry.name / release_tag
         )
 
         if not release_output_dir.is_dir():

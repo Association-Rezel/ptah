@@ -1,4 +1,5 @@
 """JWT API for encoding and decoding JWTs using Vault Transit. This is intended for dev."""
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
@@ -48,7 +49,7 @@ def jwt_encode(
             status_code=400,
             detail="JWT transit file information is missing.",
         )
-    
+
     jwt_manager = JwtTransitManager(
         secrets[jwt_transit_file.jwt_from_vault_transit.credentials.vault_token],
         jwt_transit_file.jwt_from_vault_transit.vault_server,
@@ -67,7 +68,6 @@ def jwt_encode(
             status_code=500,
             detail=f"Failed to issue JWT: {e}",
         )
-
 
     return JSONResponse(
         content={

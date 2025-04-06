@@ -169,8 +169,7 @@ class RouterSpecificFilesHandler:
         Handle files that are specific to a router, including vault certs and versioning.
         """
         router_temp_dir = (
-            ENV.router_temporary_path
-            / self.build_context.mac.to_filename_compliant()
+            ENV.router_temporary_path / self.build_context.mac.to_filename_compliant()
         )
 
         # Ensure a clean temporary directory for the router files
