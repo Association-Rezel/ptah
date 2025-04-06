@@ -15,6 +15,7 @@ class CertificateData(BaseModel):
 class PtahSecretsData(BaseModel):
     jwt_secret_1: str
 
+
 class KvData(BaseModel):
     data: Union[PtahSecretsData]
     metadata: dict

@@ -8,6 +8,7 @@ from ptah.contexts import BuildContext
 from ptah.models import PathTransferHandler, SpecificFileEntry
 from ptah.models import VaultResponse
 from ptah.models.VaultResponses import CertificateData, PtahSecretsData
+from ptah.utils.JwtTransitManager import JwtTransitManager
 from ptah.utils.utils import echo_to_file, recreate_dir
 
 
@@ -114,13 +115,49 @@ class RouterSpecificFilesHandler:
         encoded = jwt.encode(payload, jwt_secret, algorithm="HS256")
 
         # Defining output file paths
-        jwt_file_name = "ptah_jwt_mac.jwt"
+        jwt_file_name = f"{file_entry.name}.jwt"
         temp_path = temporary_dir / jwt_file_name
 
         with open(temp_path, "w", encoding="utf-8") as f:
             f.write(encoded)
 
         destination_path = Path(jwt_secrets.destination) / jwt_file_name
+
+        self.build_context.router_files.file_transfer_entries.append(
+            PathTransferHandler(source=temp_path, dest=destination_path)
+        )
+
+    def handle_jwt_from_vault_transit(
+        self,
+        file_entry: SpecificFileEntry,
+        temporary_dir: Path,
+    ):
+        """
+        Handle JWT secrets from vault for the router.
+        """
+        if not file_entry.jwt_from_vault_transit:
+            raise ValueError("JWT from Vault secrets information is missing.")
+        jwt_transit = file_entry.jwt_from_vault_transit
+        vault_token = self.build_context.secrets[jwt_transit.credentials.vault_token]
+        jwt_manager = JwtTransitManager(
+            vault_token,
+            jwt_transit.vault_server,
+            jwt_transit.transit_mount,
+            jwt_transit.transit_key,
+        )
+        payload = {
+            "mac": self.build_context.mac,
+            "mac_fc": self.build_context.mac.to_filename_compliant(),
+        }
+        encoded = jwt_manager.issue_jwt(payload)
+
+        # Defining output file paths
+        jwt_file_name = f"{file_entry.name}.jwt"
+        temp_path = temporary_dir / jwt_file_name
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(encoded)
+
+        destination_path = Path(jwt_transit.destination) / jwt_file_name
 
         self.build_context.router_files.file_transfer_entries.append(
             PathTransferHandler(source=temp_path, dest=destination_path)
@@ -145,9 +182,9 @@ class RouterSpecificFilesHandler:
             if file_entry.type == "vault_certificates":
                 self.handle_vault_certificates(file_entry, router_temp_dir)
             elif file_entry.type == "jwt_from_vault_secrets":
-                self.handle_jwt_from_vault_secrets(
-                    file_entry, router_temp_dir
-                )
+                self.handle_jwt_from_vault_secrets(file_entry, router_temp_dir)
+            elif file_entry.type == "jwt_from_vault_transit":
+                self.handle_jwt_from_vault_transit(file_entry, router_temp_dir)
             else:
                 raise ValueError(f"Unknown file entry type: {file_entry.type}")
 

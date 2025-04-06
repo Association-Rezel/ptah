@@ -83,11 +83,22 @@ class JwtFromVaultSecrets(BaseModel):
     credentials: VaultCredentialsReference
 
 
+class JwtFromVaultTransit(BaseModel):
+    destination: str
+    vault_server: HttpUrl
+    transit_mount: str
+    transit_key: str
+    credentials: VaultCredentialsReference
+
+
 class SpecificFileEntry(BaseModel):
     name: str
-    type: Literal["vault_certificates", "jwt_from_vault_secrets"]
+    type: Literal[
+        "vault_certificates", "jwt_from_vault_secrets", "jwt_from_vault_transit"
+    ]
     vault_certificates: Optional[VaultCertificates] = None
     jwt_from_vault_secrets: Optional[JwtFromVaultSecrets] = None
+    jwt_from_vault_transit: Optional[JwtFromVaultTransit] = None
 
 
 class Files(BaseModel):
