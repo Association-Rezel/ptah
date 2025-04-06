@@ -27,7 +27,9 @@ class PrepareDockerEnvironment:
         openwrt_version = profile.openwrt_profile.openwrt_version
         target = profile.openwrt_profile.target
         arch = profile.openwrt_profile.arch
-        target_url = f"{ENV.openwrt_base_releases_url}/{openwrt_version}/targets/{target}/{arch}"
+        target_url = (
+            f"{ENV.openwrt_base_releases_url}/{openwrt_version}/targets/{target}/{arch}"
+        )
         archive_name = f"openwrt-imagebuilder-{openwrt_version}-{target}-{arch}{ENV.openwrt_builder_file_ext}"
         image_builder_url = f"{target_url}/{archive_name}"
 

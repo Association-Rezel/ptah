@@ -70,20 +70,28 @@ class Env:  # pylint: disable=too-many-instance-attributes
         # Else, env variables are already loaded via docker compose
         self.deploy_env = get_or_default("DEPLOY_ENV", "dev")
 
-        self.openwrt_base_releases_url = HttpUrl(get_or_default(
-            "OPENWRT_BASE_RELEASES_URL",
-            "https://downloads.openwrt.org/releases/",
-        ))
+        self.openwrt_base_releases_url = HttpUrl(
+            get_or_default(
+                "OPENWRT_BASE_RELEASES_URL",
+                "https://downloads.openwrt.org/releases/",
+            )
+        )
         self.openwrt_builder_file_ext = get_or_default(
             "OPENWRT_BUILDER_FILE_EXT", ".Linux-x86_64.tar.zst"
         )
 
         self.git_repo_path = Path(get_or_default("GIT_REPO_PATH", "/opt/git"))
         self.builders_path = Path(get_or_default("BUILDERS_PATH", "/opt/builders"))
-        self.routers_files_path = Path(get_or_default("ROUTERS_FILES_PATH", "/opt/routers_files"))
+        self.routers_files_path = Path(
+            get_or_default("ROUTERS_FILES_PATH", "/opt/routers_files")
+        )
         self.output_path = Path(get_or_default("OUTPUT_PATH", "/opt/output"))
-        self.gitlab_releases_output_path = Path(get_or_default("GITLAB_RELEASES_OUTPUT_PATH", "/opt/gitlab_releases"))
-        self.router_temporary_path = Path(get_or_default("ROUTER_TEMPORARY_PATH", "/opt/temporary"))
+        self.gitlab_releases_output_path = Path(
+            get_or_default("GITLAB_RELEASES_OUTPUT_PATH", "/opt/gitlab_releases")
+        )
+        self.router_temporary_path = Path(
+            get_or_default("ROUTER_TEMPORARY_PATH", "/opt/temporary")
+        )
 
 
 ENV = Env()
