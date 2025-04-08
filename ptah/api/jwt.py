@@ -1,5 +1,6 @@
 """JWT API for encoding and decoding JWTs using Vault Transit. This is intended for dev."""
 
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
@@ -24,8 +25,8 @@ def jwt_encode(
     request: Request,
     mac: PortableMac,
     request_data: BuildPrepareRequest,
-    config: PtahConfig = Depends(get_config),
-    secrets: dict = Depends(read_secrets),
+    config: Annotated[PtahConfig, Depends(get_config)],
+    secrets: Annotated[dict, Depends(read_secrets)],
 ):
     mac_fc = mac.to_filename_compliant()
     if (ptah_profile := check_profile_exists(request_data.profile, config)) is None:
