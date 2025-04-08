@@ -10,7 +10,7 @@ from ptah.models import PathTransferHandler, SpecificFileEntry
 from ptah.models import VaultResponse
 from ptah.models.VaultResponses import CertificateData, PtahSecretsData
 from ptah.utils.JwtTransitManager import JwtTransitManager
-from ptah.utils.utils import echo_to_file, recreate_dir
+from ptah.utils.utils import build_url, echo_to_file, recreate_dir
 
 
 class RouterSpecificFilesHandler:
@@ -26,11 +26,14 @@ class RouterSpecificFilesHandler:
         if not file_entry.vault_certificates:
             raise ValueError("Vault certificates information is missing.")
         vault_certificates = file_entry.vault_certificates
-        vault_pki_role_url = (
-            f"{vault_certificates.vault_server}/v1/"
-            f"{vault_certificates.pki_mount}"
-            f"/issue/{vault_certificates.pki_role}"
+        vault_pki_role_url = build_url(
+            str(ENV.vault_url),
+            "v1",
+            vault_certificates.pki_mount,
+            "issue",
+            vault_certificates.pki_role,
         )
+
         vault_token = self.build_context.secrets[
             vault_certificates.credentials.vault_token
         ]
@@ -45,10 +48,7 @@ class RouterSpecificFilesHandler:
             },
             timeout=10,
         )
-        if request.status_code != 200:
-            raise ValueError(
-                f"Failed to retrieve certificate from Vault: {request.text}"
-            )
+        request.raise_for_status()
 
         # Parsung vault response
         vault_cert_data = cast(
@@ -88,10 +88,12 @@ class RouterSpecificFilesHandler:
         if not file_entry.jwt_from_vault_secrets:
             raise ValueError("JWT from Vault secrets information is missing.")
         jwt_secrets = file_entry.jwt_from_vault_secrets
-        vault_kv_path = (
-            f"{jwt_secrets.vault_server}/v1/"
-            f"{jwt_secrets.kv_mount}"
-            f"/data/{jwt_secrets.kv_path}"
+        vault_kv_path = build_url(
+            str(ENV.vault_url),
+            "v1",
+            jwt_secrets.kv_mount,
+            "data",
+            jwt_secrets.kv_path,
         )
         vault_token = self.build_context.secrets[jwt_secrets.credentials.vault_token]
 
@@ -100,8 +102,7 @@ class RouterSpecificFilesHandler:
             headers={"X-Vault-Token": vault_token},
             timeout=10,
         )
-        if request.status_code != 200:
-            raise ValueError(f"Failed to retrieve JWT from Vault: {request.text}")
+        request.raise_for_status()
 
         # Parsing vault response
         ptah_secrets_data = cast(
@@ -142,7 +143,7 @@ class RouterSpecificFilesHandler:
         vault_token = self.build_context.secrets[jwt_transit.credentials.vault_token]
         jwt_manager = JwtTransitManager(
             vault_token,
-            jwt_transit.vault_server,
+            ENV.vault_url,
             jwt_transit.transit_mount,
             jwt_transit.transit_key,
         )
