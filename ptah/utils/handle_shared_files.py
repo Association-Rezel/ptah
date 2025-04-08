@@ -8,6 +8,7 @@ from pydantic import HttpUrl
 from ptah.env import ENV
 from ptah.models import FileEntry, GitlabRelease, PathTransferHandler
 from ptah.contexts import BuildContext
+from ptah.utils.utils import build_url
 
 
 def fetch_gitlab_api(url: HttpUrl, token: str) -> requests.Response:
@@ -30,8 +31,7 @@ def download_asset_file(asset_url: HttpUrl, download_dir: Path, token: str) -> s
     """
     headers = {"Authorization": f"Bearer {token}"}
     with requests.get(asset_url, headers=headers, stream=True, timeout=40) as response:
-        if response.status_code != 200:
-            raise ValueError(f"Failed to download asset: {response.status_code}")
+        response.raise_for_status()
 
         content_disposition = response.headers.get("Content-Disposition", "")
         match = re.search(r'^.*filename="([^"]+)".*$', content_disposition)
@@ -66,13 +66,16 @@ def download_gitlab_release_files(
             download_asset_file(asset_url_map[expected_asset.name], target_dir, token)
 
     if release_config.source:
-        source_links = release_info["assets"]["sources"]
-        source_url_map = {source["format"]: source["url"] for source in source_links}
 
-        if "zip" not in source_url_map:
-            raise ValueError("Source zip file not found in release.")
+        archive_url = build_url(
+            str(release_config.gitlab_url),
+            "api/v4/projects",
+            release_config.project_id,
+            "repository",
+            "archive.zip",
+        )
 
-        zip_filename = download_asset_file(source_url_map["zip"], target_dir, token)
+        zip_filename = download_asset_file(archive_url, target_dir, token)
 
         with zipfile.ZipFile(target_dir / zip_filename, "r") as zip_ref:
             zip_ref.extractall(target_dir)
@@ -92,9 +95,15 @@ class SharedFilesHandler:
 
         token_name = file_entry.gitlab_release.credentials.token
         token = self.build_context.secrets[token_name]
-        release_info = get_gitlab_release_info(
-            file_entry.gitlab_release.release_url, token
+        gitlab_release = file_entry.gitlab_release
+        release_url = build_url(
+            str(gitlab_release.gitlab_url),
+            "api/v4/projects",
+            gitlab_release.project_id,
+            "releases",
+            gitlab_release.release_path,
         )
+        release_info = get_gitlab_release_info(release_url, token)
         release_tag = str(release_info["tag_name"])
 
         self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")

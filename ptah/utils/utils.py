@@ -1,5 +1,6 @@
 import os
 from typing import Optional, Dict
+from urllib.parse import urljoin
 import git
 from pathlib import Path
 from shutil import rmtree
@@ -30,7 +31,7 @@ def extract_tar_zst(input_path: Path, output_dir: Path):
     with open(input_path, "rb") as compressed_file:
         dctx = zstd.ZstdDecompressor()
         with dctx.stream_reader(compressed_file) as reader:
-            with tarfile.open(fileobj=io.BytesIO(reader.read()), mode="r:") as tar:
+            with tarfile.open(fileobj=io.BytesIO(reader.read()), mode="r|") as tar:
                 tar.extractall(path=output_dir, filter="tar")
 
 
@@ -82,3 +83,20 @@ def clone_git_repo(file: FileEntry, dest: Path, username: str, password: str):
         raise NotImplementedError("SSH not supported yet")
     else:
         raise ValueError("Unsupported Git type")
+
+
+def build_url(base_url: str, *parts: str) -> str:
+    """
+    Build a URL by joining the base URL with additional path parts.
+
+    Args:
+        base_url (str): The base URL (e.g., "https://example.com").
+        *parts (str): Additional path elements (e.g., ["api", "v1", "users"]).
+
+    Returns:
+        str: A well-formed, joined URL.
+    """
+    url = base_url.rstrip("/") + "/"
+    for part in parts:
+        url = urljoin(url, part.strip("/") + "/")
+    return url.rstrip("/")
