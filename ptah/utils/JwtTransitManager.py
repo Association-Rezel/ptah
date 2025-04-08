@@ -10,8 +10,6 @@ import json
 from pydantic import HttpUrl
 import requests
 
-from ptah.utils.utils import build_url
-
 
 class JwtTransitManager:
     """Provides methods to issue, verify and decode JWT tokens"""
@@ -65,13 +63,7 @@ class JwtTransitManager:
         base64_input = self.str_to_base64(jwt_input)
 
         # here a ConnectionError can be raised
-        url = build_url(
-            str(self.vault_base_url),
-            "v1",
-            self.transit_mount,
-            "sign",
-            self.transit_key,
-        )
+        url = f"{self.vault_base_url}/v1/{self.transit_mount}/sign/{self.transit_key}"
         response = requests.post(
             url=url,
             headers=self.headers,
@@ -113,13 +105,7 @@ class JwtTransitManager:
         base64_signature = self.base64url_to_base64(signature)
 
         # here a ConnectionError can be raised
-        url = build_url(
-            str(self.vault_base_url),
-            "v1",
-            self.transit_mount,
-            "verify",
-            self.transit_key,
-        )
+        url = f"{self.vault_base_url}/v1/{self.transit_mount}/verify/{self.transit_key}"
         response = requests.post(
             url=url,
             headers=self.headers,

@@ -14,9 +14,7 @@ ptah_profiles:
         - name: ptah_files
           type: gitlab_release
           gitlab_release:
-            gitlab_url: https://gitlab.com
-            project_id: 499
-            release_path: /permalink/latest
+            release_url: https://gitlab.com/api/v4/projects/499/releases/permalink/latest
             source:
               paths:
                 - shared_files
@@ -26,9 +24,7 @@ ptah_profiles:
         - name: go_daemon
           type: gitlab_release
           gitlab_release:
-            gitlab_url: https://gitlab.com
-            project_id: 500
-            release_path: /permalink/latest
+            release_url: https://gitlab.com/api/v4/projects/500/releases/permalink/latest
             assets:
               - name: hermes_daemon-linux-mips
                 destination: /hermes_daemon

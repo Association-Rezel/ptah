@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from typing import Annotated, cast
+from typing import cast
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -28,31 +28,28 @@ def check_profile_exists(profile: str, config: PtahConfig) -> PtahProfile:
 
 def run_make_build(profile: PtahProfile, mac: str) -> bool:
     packages = " ".join(profile.packages) if profile.packages else ""
-    make_image_cmd = [
-        "make",
-        "image",
-        f"PROFILE={profile.openwrt_profile.name}",
-        f"PACKAGES={packages}",
-        f"EXTRA_IMAGE_NAME=ptah-{mac}",
-        f"BIN_DIR={ENV.output_path / mac}",
-        f"FILES={ENV.routers_files_path / mac}",
-    ]
-
-    profile_path = ENV.builders_path / profile.name
-    with open(profile_path / "builder_folder", encoding="utf-8") as f:
+    make_image_cmd = (
+        f"make image "
+        f'PROFILE="{profile.openwrt_profile.name}" '
+        f'PACKAGES="{packages}" '
+        f'EXTRA_IMAGE_NAME="ptah-{mac}" '
+        f'BIN_DIR="{ENV.output_path / mac}" '
+        f'FILES="{ENV.routers_files_path / mac }" '
+    )
+    profile = ENV.builders_path / profile.name
+    with open(profile / "builder_folder", encoding="utf-8") as f:
         builder_name = f.readline().strip("\n")
-    builder_path = profile_path / builder_name
+    builder_path = ENV.builders_path / profile.name / builder_name
 
     recreate_dir(ENV.output_path / mac)
 
     try:
-        subprocess.run(make_image_cmd, check=True, cwd=builder_path)
+        subprocess.run(make_image_cmd, shell=True, check=True, cwd=builder_path)
     except subprocess.CalledProcessError as exc:
         raise HTTPException(
             status_code=500,
             detail="Build failed.",
         ) from exc
-
     return True
 
 
@@ -61,8 +58,8 @@ def build_endpoint(
     request: Request,
     mac: PortableMac,
     request_data: BuildPrepareRequest,
-    config: Annotated[PtahConfig, Depends(get_config)],
-    secrets: Annotated[dict, Depends(read_secrets)],
+    config: PtahConfig = Depends(get_config),
+    secrets: dict = Depends(read_secrets),
 ):
     ctx = cast(AppContext, request.app.state.ctx)
     build_contexts = ctx.build_contexts

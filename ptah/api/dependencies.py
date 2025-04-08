@@ -1,11 +1,8 @@
 import os
 from pathlib import Path
-from typing import Annotated
+from dotenv import load_dotenv
 from fastapi import Depends
-import requests
-from ptah.env import ENV
 from ptah.models.PtahConfig import PtahConfig
-from ptah.utils.K8sVaultTokenProcessing import K8sVaultTokenProcessing
 from ptah.utils.utils import load_ptah_config
 
 
@@ -14,21 +11,16 @@ def get_config() -> PtahConfig:
     return load_ptah_config(config_path)
 
 
-def read_secrets(config: Annotated[PtahConfig, Depends(get_config)]) -> dict:
+def read_secrets(config: PtahConfig = Depends(get_config)) -> dict:
     secrets = {}
+
     for credential in config.credentials.keys():
-        if credential == "K8S_VAULT_TOKEN":
-            secrets[credential] = K8sVaultTokenProcessing(
-                ENV.vault_url, ENV.vault_role_name
-            ).get_vault_token()
-            continue
-        if credential not in os.environ:
+        secrets[credential] = os.getenv(credential)
+        if secrets[credential] is None:
             raise RuntimeError(
                 f"Environment variable '{credential}' not found. "
                 "Please set it in your environment."
             )
-        secrets[credential] = os.getenv(credential)
-
     if secrets == {}:
         raise RuntimeError("No secrets found in environment variables.")
     return secrets

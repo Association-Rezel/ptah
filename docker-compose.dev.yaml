@@ -1,0 +1,15 @@
+services:
+  ptah:
+    build: .
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./:/app:Z
+      - ./ptah_config.yaml:/opt/ptah_config.yaml:Z
+      - ./opt:/opt:Z
+    command: --reload --port 8001
+    env_file:
+      - .env.dev
+      - .env.local
+
+    network_mode: host

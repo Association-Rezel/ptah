@@ -4,7 +4,6 @@ from os import getenv
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import HttpUrl
-import requests
 
 __all__ = ["EnvError", "ENV"]
 
@@ -59,9 +58,6 @@ class Env:  # pylint: disable=too-many-instance-attributes
     gitlab_releases_output_path: Path
     router_temporary_path: Path
 
-    vault_url: HttpUrl
-    vault_role_name: str
-
     def __init__(self) -> None:
         """Load all variables."""
 
@@ -96,9 +92,6 @@ class Env:  # pylint: disable=too-many-instance-attributes
         self.router_temporary_path = Path(
             get_or_default("ROUTER_TEMPORARY_PATH", "/opt/temporary")
         )
-
-        self.vault_url = HttpUrl(get_or_default("VAULT_URL", "http://vault:8200"))
-        self.vault_role_name = get_or_none("VAULT_ROLE_NAME")
 
 
 ENV = Env()
