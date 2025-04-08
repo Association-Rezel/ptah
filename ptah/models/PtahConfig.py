@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Literal, Dict, Set, Union
+from typing import List, Optional, Literal, Dict, Set
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 
 
@@ -50,17 +50,10 @@ class GitlabReleaseCredentialsReference(BaseModel):
 
 
 class GitlabRelease(BaseModel):
-    gitlab_url: HttpUrl
-    release_path: str
-    project_id: Union[str, int]
+    release_url: HttpUrl
     assets: Optional[List[Asset]] = None
     source: Optional[Source] = None
     credentials: GitlabReleaseCredentialsReference
-
-    @field_validator("project_id", mode="before")
-    @classmethod
-    def cast_project_id_to_str(cls, v):
-        return str(v)
 
 
 class FileEntry(BaseModel):
@@ -75,6 +68,7 @@ class VaultCredentialsReference(BaseModel):
 
 class VaultCertificates(BaseModel):
     destination: str
+    vault_server: HttpUrl
     pki_mount: str
     pki_role: str
     cn_suffix: str
@@ -83,6 +77,7 @@ class VaultCertificates(BaseModel):
 
 class JwtFromVaultSecrets(BaseModel):
     destination: str
+    vault_server: HttpUrl
     kv_mount: str
     kv_path: str
     credentials: VaultCredentialsReference
@@ -90,6 +85,7 @@ class JwtFromVaultSecrets(BaseModel):
 
 class JwtFromVaultTransit(BaseModel):
     destination: str
+    vault_server: HttpUrl
     transit_mount: str
     transit_key: str
     credentials: VaultCredentialsReference

@@ -1,5 +1,6 @@
 #!/bin/bash
 
-cd /app
+python3 /app/prepare_docker_environment.py --config /opt/ptah_config.yaml
 
-uvicorn main:app "$@"
+cd /app
+uvicorn main:app --host :: "$@"
