@@ -14,20 +14,20 @@ ptah_profiles:
         - name: ptah_files
           type: gitlab_release
           gitlab_release:
-            gitlab_url: https://gitlab.com
-            project_id: 499
             release_path: /permalink/latest
+            gitlab_url: https://gitlab.fai.rezel.net
+            project_id: 129
             source:
               paths:
                 - shared_files
                 - ac2350
             credentials:
-              token: GIT_TOKEN_1
+              token: GIT_PTAH_FILES_TOKEN
         - name: go_daemon
           type: gitlab_release
           gitlab_release:
-            gitlab_url: https://gitlab.com
-            project_id: 500
+            gitlab_url: https://gitlab.fai.rezel.net
+            project_id: 27
             release_path: /permalink/latest
             assets:
               - name: hermes_daemon-linux-mips
@@ -37,38 +37,26 @@ ptah_profiles:
               paths:
                 - ptah_files
             credentials:
-              token: GIT_TOKEN_1
+              token: GIT_GO_DAEMON_TOKEN
       router_specific_files:
         - name: vault_ssl_mac
           type: vault_certificates
           vault_certificates:
             destination: /etc/ssl/certs
-            vault_server: https://vault.hashicorp.com
-            pki_mount: core-dev
-            pki_role: pki
-            cn_suffix: .box.example.com
+            pki_mount: core-int
+            pki_role: box-fai-rezel-net
+            cn_suffix: .box.fai.rezel.net
             credentials:
-              token: VAULT_TOKEN_1
-        - name: jwt_from_vault_secrets
-          type: jwt_from_vault_secrets
-          jwt_from_vault_secrets:
-            destination: /etc
-            vault_server: https://vault.hashicorp.com
-            kv_mount: kv
-            kv_path: ptah
-            credentials:
-              vault_token: VAULT_TOKEN_1
+              vault_token: K8S_VAULT_TOKEN
         - name: mac_jwt
           type: jwt_from_vault_transit
           jwt_from_vault_transit:
             destination: /etc
-            vault_server: https://vault.hashicorp.com
             transit_mount: transit
             transit_key: ptah-jwt
             credentials:
-              vault_token: VAULT_TOKEN_1
-        
+              vault_token: K8S_VAULT_TOKEN
 credentials:
-  GIT_USER_1:
-  GIT_TOKEN_1:
-  VAULT_TOKEN_1:
+  GIT_PTAH_FILES_TOKEN:
+  GIT_GO_DAEMON_TOKEN:
+  K8S_VAULT_TOKEN:
