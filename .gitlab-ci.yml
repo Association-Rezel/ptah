@@ -1,0 +1,80 @@
+default:
+  image: docker:24.0
+
+stages:
+  - pre_checks
+  - build
+  - deploy
+  - security-checks
+  - publish
+
+include:
+  - project: 'fai/shared-ci'
+    file: .gitlab-ci-template-publish_to_github.yml
+    inputs:
+      vault_secrets_role: service_ptah
+      vault_secrets_path: kv/data/ptah_ci_secrets
+      github_git_remote: git@github.com:Association-Rezel/ptah.git
+
+variables:
+  PTAH_IMAGE_TAG: $CI_REGISTRY_IMAGE/ptah:${DEPLOY_ENV}-$CI_COMMIT_SHORT_SHA
+  PTAH_IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE/ptah:${DEPLOY_ENV}-latest
+
+linting:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  stage: pre_checks
+  image: registry.gitlab.com/pipeline-components/black:latest
+  script:
+    - black --version
+    - black --check --verbose --diff --color -- .
+
+# From https://docs.gitlab.com/ee/ci/docker/using_kaniko.html#building-a-docker-image-with-kaniko
+buildapp:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        DEPLOY_ENV: "prod"
+        PTAH_CONFIG_FILE: "ptah_config.prod.yaml"
+    - variables:
+        DEPLOY_ENV: "dev"
+        PTAH_CONFIG_FILE: "ptah_config.dev.yaml"
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
+      --destination "${PTAH_IMAGE_TAG}"
+      --destination "${PTAH_IMAGE_TAG_LATEST}"
+      --build-arg "PTAH_CONFIG_FILE=${PTAH_CONFIG_FILE}"
+
+deploy:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        DEPLOY_ENV: "prod"
+        DEPLOY_NAMESPACE: "default"
+    - variables:
+        DEPLOY_ENV: "dev"
+        DEPLOY_NAMESPACE: "dev"
+        RELOAD_ARG: "--reload"
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: ['']
+  script:
+    # Substitute environment variables in Kubernetes manifests
+    - mkdir k8s-envsubst
+    - |
+      for file in k8s/*.yaml; do
+        envsubst < $file | tee k8s-envsubst/$(basename $file)
+      done
+    # Apply Kubernetes manifests
+    - kubectl config use-context fai/k8s-cluster:main-k8s-agent
+    - kubectl apply -f k8s-envsubst/
+    # Clean up
+    - rm -rf k8s-envsubst
