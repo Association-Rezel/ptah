@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd /app
+cd /app || exit
 
 uvicorn main:app "$@"
