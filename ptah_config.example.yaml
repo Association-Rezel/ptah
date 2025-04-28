@@ -1,6 +1,7 @@
+---
 ptah_profiles:
   - name: ac2350
-    openwrt_profile: 
+    openwrt_profile:
       name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
@@ -67,7 +68,6 @@ ptah_profiles:
             transit_key: ptah-jwt
             credentials:
               vault_token: VAULT_TOKEN_1
-        
 credentials:
   GIT_USER_1:
   GIT_TOKEN_1:
