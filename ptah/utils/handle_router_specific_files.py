@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import cast
+from datetime import datetime, timedelta, timezone
 
 import jwt
 import requests
@@ -110,9 +111,16 @@ class RouterSpecificFilesHandler:
             VaultResponse.model_validate_json(request.text).data.data,
         )
         jwt_secret = ptah_secrets_data.jwt_secret_1
+
+        now = datetime.now(timezone.utc)
+        iat = int(now.timestamp())
+        exp = int((now + timedelta(days=90)).timestamp())
+
         payload = {
             "mac": self.build_context.mac,
             "mac_fc": self.build_context.mac.to_filename_compliant(),
+            "exp": exp,
+            "iat": iat,
         }
         encoded = jwt.encode(payload, jwt_secret, algorithm="HS256")
 
@@ -147,9 +155,15 @@ class RouterSpecificFilesHandler:
             jwt_transit.transit_mount,
             jwt_transit.transit_key,
         )
+        now = datetime.now(timezone.utc)
+        iat = int(now.timestamp())
+        exp = int((now + timedelta(days=90)).timestamp())
+
         payload = {
             "mac": self.build_context.mac,
             "mac_fc": self.build_context.mac.to_filename_compliant(),
+            "exp": exp,
+            "iat": iat,
         }
         encoded = jwt_manager.issue_jwt(payload)
 
