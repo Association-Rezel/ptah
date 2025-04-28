@@ -1,9 +1,10 @@
 FROM python:bookworm
-RUN apt-get update
 
 # Install packages for building the binary
-RUN apt-get install -y build-essential libncurses-dev zlib1g-dev gawk git \
-gettext libssl-dev xsltproc rsync wget unzip python3 python3-setuptools
+RUN apt-get update \
+    && apt-get install -y build-essential gettext git gawk libncurses-dev \
+    libssl-dev python3 python3-setuptools rsync unzip wget xsltproc zlib1g-dev \
+    && apt-get clean
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt

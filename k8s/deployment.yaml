@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,8 +17,10 @@ spec:
         app: ptah
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "ptah_${DEPLOY_ENV}"
-        vault.hashicorp.com/agent-inject-template-env: | # Writes at /vault/secrets/env
+        vault.hashicorp.com/role:
+          "ptah_${DEPLOY_ENV}"
+          # Writes at /vault/secrets/env
+        vault.hashicorp.com/agent-inject-template-env: |
           {{ with secret "kv/data/ptah_${DEPLOY_ENV}" -}}
             GIT_PTAH_FILES_TOKEN="{{ .Data.data.git_ptah_files_token }}"
             GIT_GO_DAEMON_TOKEN="{{ .Data.data.git_go_daemon_token }}"
@@ -25,29 +28,29 @@ spec:
     spec:
       serviceAccountName: ptah-ksa
       containers:
-      - name: ptah-container
-        image: $PTAH_IMAGE_TAG
-        ports:
-        - containerPort: 8000
-        resources:
-          limits:
-            cpu: "1"
-            memory: "1024Mi"
-          requests:
-            cpu: "0.4"
-            memory: "512Mi"
-        args:
-        - "--host"
-        - "0.0.0.0"
-        - "--port"
-        - "8000"
-        - "${RELOAD_ARG}"
-        env:
-        - name: DEPLOY_ENV
-          value: "${DEPLOY_ENV}"
-        - name: VAULT_URL
-          value: "https://vault.fai.rezel.net"
-        - name: VAULT_ROLE_NAME
-          value: "ptah_${DEPLOY_ENV}"
+        - name: ptah-container
+          image: $PTAH_IMAGE_TAG
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1024Mi"
+            requests:
+              cpu: "0.4"
+              memory: "512Mi"
+          args:
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "${RELOAD_ARG}"
+          env:
+            - name: DEPLOY_ENV
+              value: "${DEPLOY_ENV}"
+            - name: VAULT_URL
+              value: "https://vault.fai.rezel.net"
+            - name: VAULT_ROLE_NAME
+              value: "ptah_${DEPLOY_ENV}"
       imagePullSecrets:
-       - name: gitlab-registery-credentials
+        - name: gitlab-registery-credentials

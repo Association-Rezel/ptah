@@ -106,7 +106,7 @@ class SharedFilesHandler:
         release_info = get_gitlab_release_info(release_url, token)
         release_tag = str(release_info["tag_name"])
 
-        self.build_context.versions.versions.append(f"{file_entry.name}{release_tag}")
+        self.build_context.versions._versions.append(f"{file_entry.name}{release_tag}")
 
         release_output_dir = (
             Path(ENV.gitlab_releases_output_path) / file_entry.name / release_tag
