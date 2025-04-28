@@ -17,7 +17,7 @@ class JwtTransitManager:
     """Provides methods to issue, verify and decode JWT tokens"""
 
     ALG: str = "RS256"
-    SIGN_ALG: str = "pkcs1v15"
+    SIGN_ALG: str = "pss"
     VAULT_SIGNATURE_PREFIX = "vault:v1:"
 
     def __init__(

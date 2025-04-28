@@ -1,5 +1,6 @@
 """JWT API for encoding and decoding JWTs using Vault Transit. This is intended for dev."""
 
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -59,9 +60,15 @@ def jwt_encode(
         jwt_transit_file.jwt_from_vault_transit.transit_key,
     )
 
+    now = datetime.now(timezone.utc)
+    iat = int(now.timestamp())
+    exp = int((now + timedelta(days=90)).timestamp())
+
     payload = {
         "mac": mac,
         "mac_fc": mac_fc,
+        "exp": exp,
+        "iat": iat,
     }
     try:
         encoded = jwt_manager.issue_jwt(payload)
