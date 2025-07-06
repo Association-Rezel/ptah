@@ -16,7 +16,7 @@ ptah_profiles:
           type: gitlab_release
           gitlab_release:
             release_path: /permalink/latest
-            gitlab_url: https://gitlab.fai.rezel.net
+            gitlab_url: https://gitlab.core.rezel.net
             project_id: 129
             source:
               paths:
@@ -27,7 +27,7 @@ ptah_profiles:
         - name: go_daemon
           type: gitlab_release
           gitlab_release:
-            gitlab_url: https://gitlab.fai.rezel.net
+            gitlab_url: https://gitlab.core.rezel.net
             project_id: 27
             release_path: /permalink/latest
             assets:
