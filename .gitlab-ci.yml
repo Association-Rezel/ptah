@@ -9,7 +9,7 @@ stages:
   - publish
 
 include:
-  - project: 'fai/shared-ci'
+  - project: 'rezel/shared-ci'
     file: .gitlab-ci-template-publish_to_github.yml
     inputs:
       vault_secrets_role: service_ptah
@@ -74,7 +74,7 @@ deploy:
         envsubst < $file | tee k8s-envsubst/$(basename $file)
       done
     # Apply Kubernetes manifests
-    - kubectl config use-context fai/k8s-cluster:main-k8s-agent
+    - kubectl config use-context rezel/k8s-cluster:main-k8s-agent
     - kubectl apply -f k8s-envsubst/
     # Clean up
     - rm -rf k8s-envsubst
