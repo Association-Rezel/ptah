@@ -22,7 +22,7 @@ class Local(BaseModel):
 class Asset(BaseModel):
     name: str
     destination: Path
-    permission: str
+    permission: Optional[str] = "644"
 
     @field_validator("permission", mode="before")
     @classmethod
@@ -45,7 +45,7 @@ class Source(BaseModel):
     paths: List[Path]
 
 
-class GitlabReleaseCredentialsReference(BaseModel):
+class GitlabCredentialsReference(BaseModel):
     token: str
 
 
@@ -55,7 +55,57 @@ class GitlabRelease(BaseModel):
     project_id: Union[str, int]
     assets: Optional[List[Asset]] = None
     source: Optional[Source] = None
-    credentials: GitlabReleaseCredentialsReference
+    credentials: GitlabCredentialsReference
+
+    @field_validator("project_id", mode="before")
+    @classmethod
+    def cast_project_id_to_str(cls, v):
+        return str(v)
+
+
+class GitlabRepoArchive(BaseModel):
+    gitlab_url: HttpUrl
+    project_id: Union[str, int]
+    sha: str
+    source: Source
+    credentials: GitlabCredentialsReference
+
+    @field_validator("project_id", mode="before")
+    @classmethod
+    def cast_project_id_to_str(cls, v):
+        return str(v)
+
+
+class GenericPackageFile(BaseModel):
+    name: str
+    destination: Path
+    permission: Optional[str] = "644"
+
+    @field_validator("permission", mode="before")
+    @classmethod
+    def validate_permission(cls, v: str) -> str:
+        if isinstance(v, int):
+            v = str(v)
+        if not v.isdigit() or len(v) not in {3, 4}:
+            raise ValueError("Permission must be a 3 or 4 digit octal string")
+        try:
+            int(v, 8)
+        except ValueError as exc:
+            raise ValueError("Permission must be a valid octal number") from exc
+        return v
+
+
+class GenericPackage(BaseModel):
+    name: str
+    version: str
+    files: List[GenericPackageFile]
+
+
+class GitlabPackages(BaseModel):
+    gitlab_url: HttpUrl
+    project_id: Union[str, int]
+    generic_packages: List[GenericPackage]
+    credentials: GitlabCredentialsReference
 
     @field_validator("project_id", mode="before")
     @classmethod
@@ -65,8 +115,10 @@ class GitlabRelease(BaseModel):
 
 class FileEntry(BaseModel):
     name: str
-    type: Literal["gitlab_release"]
+    type: Literal["gitlab_release", "gitlab_repo_archive", "gitlab_packages"]
     gitlab_release: Optional[GitlabRelease] = None
+    gitlab_repo_archive: Optional[GitlabRepoArchive] = None
+    gitlab_packages: Optional[GitlabPackages] = None
 
 
 class VaultCredentialsReference(BaseModel):
