@@ -16,7 +16,7 @@ from ptah.utils.utils import recreate_dir
 from ptah.api.dependencies import get_config, read_secrets
 from ptah.env import ENV
 
-router = APIRouter()
+router = APIRouter(tags=["Build"])
 
 
 def check_profile_exists(profile: str, config: PtahConfig) -> PtahProfile:

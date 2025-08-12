@@ -1,11 +1,12 @@
-pyyaml
-pydantic
-black
-gitpython
-python-dotenv
-requests
-zstandard
-fastapi
-netaddr
-uvicorn
-pyjwt
+--extra-index-url https://gitlab.core.rezel.net/api/v4/projects/139/packages/pypi/simple
+black<26
+fastapi<1
+netaddr<2
+pydantic<3
+pyjwt<3
+python-dotenv<2
+pyyaml<7
+requests<3
+uvicorn<1
+zstandard<1
+rezel-vault-jwt==0.1.1

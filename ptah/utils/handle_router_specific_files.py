@@ -1,22 +1,23 @@
-from pathlib import Path
-from typing import cast
-from datetime import datetime, timedelta, timezone
-
 import jwt
 import requests
+
+from pathlib import Path
+from typing import cast
+from rezel_vault_jwt.jwt_transit_manager import JwtTransitManager
+from rezel_vault_jwt.jwt_payload_builder import JwtPayloadBuilder
 
 from ptah.contexts import BuildContext
 from ptah.env import ENV
 from ptah.models import PathTransferHandler, SpecificFileEntry
 from ptah.models import VaultResponse
 from ptah.models.VaultResponses import CertificateData, PtahSecretsData
-from ptah.utils.JwtTransitManager import JwtTransitManager
 from ptah.utils.utils import build_url, echo_to_file, recreate_dir
 
 
 class RouterSpecificFilesHandler:
     def __init__(self, build_context: BuildContext):
         self.build_context = build_context
+        self.jwt_payload_builder = JwtPayloadBuilder()
 
     def handle_vault_certificates(
         self, file_entry: SpecificFileEntry, temporary_dir: Path
@@ -51,14 +52,12 @@ class RouterSpecificFilesHandler:
         )
         request.raise_for_status()
 
-        # Parsung vault response
         vault_cert_data = cast(
             CertificateData, VaultResponse.model_validate_json(request.text).data
         )
         cert_data = vault_cert_data.certificate
         key_data = vault_cert_data.private_key
 
-        # Defining output file paths
         cert_file_name = "ptah_vault_ssl_mac.pem"
         key_file_name = "ptah_vault_ssl_mac.key"
         cert_files = [
@@ -66,7 +65,6 @@ class RouterSpecificFilesHandler:
             (key_file_name, key_data),
         ]
 
-        # Writing certificates to temp dir
         for filename, content in cert_files:
             temp_path = temporary_dir / filename
             with open(temp_path, "w", encoding="utf-8") as f:
@@ -105,26 +103,17 @@ class RouterSpecificFilesHandler:
         )
         request.raise_for_status()
 
-        # Parsing vault response
         ptah_secrets_data = cast(
             PtahSecretsData,
             VaultResponse.model_validate_json(request.text).data.data,
         )
         jwt_secret = ptah_secrets_data.jwt_secret_1
 
-        now = datetime.now(timezone.utc)
-        iat = int(now.timestamp())
-        exp = int((now + timedelta(days=90)).timestamp())
-
-        payload = {
-            "mac": self.build_context.mac,
-            "mac_fc": self.build_context.mac.to_filename_compliant(),
-            "exp": exp,
-            "iat": iat,
-        }
+        payload = self.jwt_payload_builder.create_ptah_payload(
+            mac=self.build_context.mac
+        )
         encoded = jwt.encode(payload, jwt_secret, algorithm="HS256")
 
-        # Defining output file paths
         jwt_file_name = f"{file_entry.name}.jwt"
         temp_path = temporary_dir / jwt_file_name
 
@@ -155,19 +144,12 @@ class RouterSpecificFilesHandler:
             jwt_transit.transit_mount,
             jwt_transit.transit_key,
         )
-        now = datetime.now(timezone.utc)
-        iat = int(now.timestamp())
-        exp = int((now + timedelta(days=90)).timestamp())
 
-        payload = {
-            "mac": self.build_context.mac,
-            "mac_fc": self.build_context.mac.to_filename_compliant(),
-            "exp": exp,
-            "iat": iat,
-        }
+        payload = self.jwt_payload_builder.create_ptah_payload(
+            mac=self.build_context.mac
+        )
         encoded = jwt_manager.issue_jwt(payload)
 
-        # Defining output file paths
         jwt_file_name = f"{file_entry.name}.jwt"
         temp_path = temporary_dir / jwt_file_name
         with open(temp_path, "w", encoding="utf-8") as f:
@@ -187,7 +169,6 @@ class RouterSpecificFilesHandler:
             ENV.router_temporary_path / self.build_context.mac.to_filename_compliant()
         )
 
-        # Ensure a clean temporary directory for the router files
         recreate_dir(router_temp_dir)
 
         router_files_config = self.build_context.profile.files.router_specific_files
@@ -203,7 +184,6 @@ class RouterSpecificFilesHandler:
             else:
                 raise ValueError(f"Unknown file entry type: {file_entry.type}")
 
-        # Compute and store the version hash
         self.build_context.final_version = (
             self.build_context.versions.compute_versions_hash()
         )
@@ -211,7 +191,6 @@ class RouterSpecificFilesHandler:
         version_file_path = router_temp_dir / "ptah_version"
         echo_to_file(version_file_path, self.build_context.final_version)
 
-        # Add version file to router's file transfer list
         self.build_context.router_files.file_transfer_entries.append(
             PathTransferHandler(
                 source=version_file_path,
