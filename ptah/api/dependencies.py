@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Annotated
 from fastapi import Depends
-import requests
 from ptah.env import ENV
 from ptah.models.PtahConfig import PtahConfig
 from ptah.utils.K8sVaultTokenProcessing import K8sVaultTokenProcessing

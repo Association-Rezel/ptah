@@ -1,7 +1,6 @@
 import os
 from typing import Optional, Dict
 from urllib.parse import urljoin
-import git
 from pathlib import Path
 from shutil import rmtree
 
@@ -71,18 +70,6 @@ def get_secrets(credentials: Optional[Dict[str, Optional[Credential]]]) -> dict:
         else:
             raise ValueError(f"Unsupported credential source: {credential.source}")
     return secrets
-
-
-def clone_git_repo(file: FileEntry, dest: Path, username: str, password: str):
-    if file.git.type == "http":
-        if not username or not password:
-            raise ValueError("Missing Git credentials in environment.")
-        url = build_git_http_url(file.git.url, username, password)
-        git.Repo.clone_from(url, dest)
-    elif file.git.type == "ssh":
-        raise NotImplementedError("SSH not supported yet")
-    else:
-        raise ValueError("Unsupported Git type")
 
 
 def build_url(base_url: str, *parts: str) -> str:
