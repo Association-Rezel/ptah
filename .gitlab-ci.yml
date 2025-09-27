@@ -51,6 +51,7 @@ buildapp:
       --destination "${PTAH_IMAGE_TAG}"
       --destination "${PTAH_IMAGE_TAG_LATEST}"
       --build-arg "PTAH_CONFIG_FILE=${PTAH_CONFIG_FILE}"
+      --build-arg "DEPLOY_ENV=${DEPLOY_ENV}"
 
 deploy:
   stage: deploy
@@ -64,8 +65,10 @@ deploy:
         DEPLOY_NAMESPACE: "dev"
         RELOAD_ARG: "--reload"
   image:
-    name: bitnami/kubectl:latest
+    name: dtzar/helm-kubectl
     entrypoint: ['']
+  before_script:
+    - apk add envsubst
   script:
     # Substitute environment variables in Kubernetes manifests
     - mkdir k8s-envsubst

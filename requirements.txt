@@ -1,4 +1,5 @@
 --extra-index-url https://gitlab.core.rezel.net/api/v4/projects/139/packages/pypi/simple
+--extra-index-url https://gitlab.core.rezel.net/api/v4/projects/56/packages/pypi/simple
 black<26
 fastapi<1
 netaddr<2
@@ -10,3 +11,4 @@ requests<3
 uvicorn<1
 zstandard<1
 rezel-vault-jwt==0.1.1
+common-models==0.2.1-dev1

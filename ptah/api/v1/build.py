@@ -13,10 +13,17 @@ from ptah.models import Versions
 from ptah.utils.handle_router_specific_files import RouterSpecificFilesHandler
 from ptah.utils.handle_shared_files import SharedFilesHandler
 from ptah.utils.utils import recreate_dir
-from ptah.api.dependencies import get_config, read_secrets
+from ptah.api.dependencies import check_mac_matches_payload, get_config, read_secrets
 from ptah.env import ENV
 
-router = APIRouter(tags=["Build"])
+if ENV.deploy_env in ("local"):
+    router = APIRouter(prefix="/build", tags=["Build"])
+else:
+    router = APIRouter(
+        prefix="/build",
+        tags=["Build"],
+        dependencies=[Depends(check_mac_matches_payload)],
+    )
 
 
 def check_profile_exists(profile: str, config: PtahConfig) -> PtahProfile:
@@ -56,7 +63,7 @@ def run_make_build(profile: PtahProfile, mac: str) -> bool:
     return True
 
 
-@router.post("/build/prepare/{mac}")
+@router.post("/prepare/{mac}")
 def build_endpoint(
     request: Request,
     mac: PortableMac,
@@ -113,7 +120,7 @@ def build_endpoint(
     )
 
 
-@router.post("/build/{mac}")
+@router.post("/{mac}")
 def download_build_endpoint(
     request: Request,
     mac: PortableMac,

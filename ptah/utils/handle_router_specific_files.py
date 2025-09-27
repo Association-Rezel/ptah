@@ -197,3 +197,13 @@ class RouterSpecificFilesHandler:
                 dest=Path("/etc/ptah_version"),
             )
         )
+
+        stack_env_file_path = router_temp_dir / "stack_env"
+        echo_to_file(stack_env_file_path, ENV.deploy_env)
+
+        self.build_context.router_files.file_transfer_entries.append(
+            PathTransferHandler(
+                source=stack_env_file_path,
+                dest=Path("/etc/stack_env"),
+            )
+        )
