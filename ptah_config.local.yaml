@@ -5,7 +5,7 @@ ptah_profiles:
       name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
-      openwrt_version: 24.10.0
+      openwrt_version: 24.10.2
     packages:
       - '-luci'
       - 'curl'
@@ -22,7 +22,6 @@ ptah_profiles:
               paths:
                 - shared_files
                 - ac2350
-                - ac2350-dev-etc
             credentials:
               token: GIT_TOKEN_1
         - name: go_daemon_files

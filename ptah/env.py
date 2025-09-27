@@ -50,6 +50,8 @@ class Env:  # pylint: disable=too-many-instance-attributes
 
     deploy_env: str
 
+    config_path: Path
+
     openwrt_base_releases_url: HttpUrl
     openwrt_builder_file_ext: str
     git_repo_path: Path
@@ -61,6 +63,8 @@ class Env:  # pylint: disable=too-many-instance-attributes
 
     vault_url: HttpUrl
     vault_role_name: str
+    vault_transit_mount: str
+    vault_transit_key: str
 
     def __init__(self) -> None:
         """Load all variables."""
@@ -69,10 +73,14 @@ class Env:  # pylint: disable=too-many-instance-attributes
         # Check if KUBERNETES_SERVICE_HOST is set
         if getenv("KUBERNETES_SERVICE_HOST"):
             load_dotenv("/vault/secrets/env")
-            load_dotenv(f".env.{getenv('DEPLOY_ENV')}")
 
         # Else, env variables are already loaded via docker compose
-        self.deploy_env = get_or_default("DEPLOY_ENV", "dev")
+        self.deploy_env = get_or_default("DEPLOY_ENV", "local")
+        load_dotenv(f".env.{self.deploy_env}")
+
+        self.config_path = Path(
+            get_or_default("PTAH_CONFIG_PATH", "/opt/ptah_config.yaml")
+        )
 
         self.openwrt_base_releases_url = HttpUrl(
             get_or_default(
@@ -99,6 +107,8 @@ class Env:  # pylint: disable=too-many-instance-attributes
 
         self.vault_url = HttpUrl(get_or_default("VAULT_URL", "http://vault:8200"))
         self.vault_role_name = get_or_none("VAULT_ROLE_NAME")
+        self.vault_transit_mount = get_or_raise("VAULT_TRANSIT_MOUNT")
+        self.vault_transit_key = get_or_raise("VAULT_TRANSIT_KEY")
 
 
 ENV = Env()

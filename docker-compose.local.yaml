@@ -1,4 +1,3 @@
----
 services:
   ptah:
     build:
@@ -6,11 +5,11 @@ services:
       args:
         PTAH_CONFIG_FILE: ptah_config.local.yaml
     ports:
-      - "8001:8000"
+      - "15100:8000"
     volumes:
       - ./:/app:Z
       - ./ptah_config.local.yaml:/opt/ptah_config.yaml:Z
-    command: "--host :: --port 8001 --reload"
+    command: "--host :: --port 8000 --reload"
     env_file:
       - .env.local
 

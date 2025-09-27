@@ -1,15 +1,16 @@
 ---
 ptah_profiles:
-  - name: ac2350
+  - name: ac2350-canary
     openwrt_profile:
       name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
-      openwrt_version: 24.10.0
+      openwrt_version: 24.10.2
     packages:
       - '-luci'
       - 'curl'
       - 'libcurl'
+      - 'tcpdump'
     files:
       profile_shared_files:
         - name: ptah_files
@@ -22,7 +23,74 @@ ptah_profiles:
               paths:
                 - shared_files
                 - ac2350
-                - ac2350-dev-etc
+            credentials:
+              token: GIT_PTAH_FILES_TOKEN
+        - name: go_daemon_files
+          type: gitlab_repo_archive
+          gitlab_repo_archive:
+            gitlab_url: https://gitlab.core.rezel.net
+            project_id: 27
+            sha: feat-adapt-ptahv2
+            source:
+              paths:
+                - ptah_files
+            credentials:
+              token: GIT_GO_DAEMON_TOKEN
+        - name: go_daemon_package
+          type: gitlab_packages
+          gitlab_packages:
+            gitlab_url: https://gitlab.core.rezel.net
+            project_id: 27
+            generic_packages:
+              - name: hermes_daemon
+                version: dev-feat-adapt-ptahv2
+                files:
+                  - name: hermes_daemon-linux-mips
+                    destination: /hermes_daemon
+                    permission: "774"
+            credentials:
+              token: GIT_GO_DAEMON_TOKEN
+      router_specific_files:
+        - name: vault_ssl_mac
+          type: vault_certificates
+          vault_certificates:
+            destination: /etc/ssl/certs
+            pki_mount: core-dev
+            pki_role: box-fai-rezel-net
+            cn_suffix: .box.fai.rezel.net
+            credentials:
+              vault_token: K8S_VAULT_TOKEN
+        - name: mac_jwt
+          type: jwt_from_vault_transit
+          jwt_from_vault_transit:
+            destination: /etc
+            transit_mount: transit
+            transit_key: ptah-jwt-dev
+            credentials:
+              vault_token: K8S_VAULT_TOKEN
+  - name: ac2350
+    openwrt_profile:
+      name: xiaomi_aiot-ac2350
+      target: ath79
+      arch: generic
+      openwrt_version: 24.10.2
+    packages:
+      - '-luci'
+      - 'curl'
+      - 'libcurl'
+      - 'tcpdump'
+    files:
+      profile_shared_files:
+        - name: ptah_files
+          type: gitlab_repo_archive
+          gitlab_repo_archive:
+            gitlab_url: https://gitlab.core.rezel.net
+            project_id: 129
+            sha: dev
+            source:
+              paths:
+                - shared_files
+                - ac2350
             credentials:
               token: GIT_PTAH_FILES_TOKEN
         - name: go_daemon_files
