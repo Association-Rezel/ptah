@@ -22,7 +22,7 @@ ptah_profiles:
             source:
               paths:
                 - shared_files
-                - ac2350
+                - ac2350-dev
             credentials:
               token: GIT_PTAH_FILES_TOKEN
         - name: go_daemon_files

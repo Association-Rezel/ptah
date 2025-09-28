@@ -11,4 +11,4 @@ requests<3
 uvicorn<1
 zstandard<1
 rezel-vault-jwt==0.1.1
-common-models==0.2.1-dev1
+common-models==0.2.1
