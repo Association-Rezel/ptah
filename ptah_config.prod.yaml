@@ -5,7 +5,7 @@ ptah_profiles:
       name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
-      openwrt_version: 24.10.2
+      openwrt_version: 24.10.3
     packages:
       - '-luci'
       - 'curl'
@@ -62,7 +62,7 @@ ptah_profiles:
       name: xiaomi_aiot-ac2350
       target: ath79
       arch: generic
-      openwrt_version: 24.10.2
+      openwrt_version: 24.10.3
     packages:
       - '-luci'
       - 'curl'
